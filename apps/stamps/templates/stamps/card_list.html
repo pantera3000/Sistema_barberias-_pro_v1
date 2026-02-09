@@ -269,9 +269,10 @@
     }
     .list-group-item-action:hover {
         background-color: #f8f9fa;
-    }
 </style>
+{% endblock %}
 
+{% block extra_js %}
 <script>
     const searchInput = document.getElementById('customerSearchInput');
     const resultsDiv = document.getElementById('customerResults');
