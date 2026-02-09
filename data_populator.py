@@ -18,10 +18,17 @@ from decimal import Decimal
 from django.db import transaction
 
 def populate():
-    print("Cleaning existing demo data...")
-    # 1. Nullify organization link in users to allow org deletion
+    # 1. Nullify organization link in users to allow user deletion
     User.objects.all().update(organization=None)
-    # 2. Delete the specific organizations
+    # 2. Delete data in correct order to avoid ProtectedError
+    print("Deleting dependent data...")
+    StampCard.objects.all().delete()
+    StampPromotion.objects.all().delete()
+    PointTransaction.objects.all().delete()
+    Reward.objects.all().delete()
+    Customer.objects.all().delete()
+    
+    # Now delete organizations
     Organization.objects.filter(name__in=['Premium Barbershop', 'Barbería Demo']).delete()
     # 3. Delete the specific users
     User.objects.filter(email__in=['dueno@demo.com', 'barbero1@demo.com', 'cliente_app@demo.com']).delete()
@@ -76,15 +83,21 @@ def populate():
 
     # 6. Customer Records
     customers = [
-        ('Juan', 'Pérez', '999111222'),
-        ('Andrés', 'García', '999333444'),
-        ('Luis', 'Sánchez', '999555666'),
+        ('Juan', 'Pérez', '999111222', 15, 8, 1985), # Full
+        ('Andrés', 'García', '999333444', 22, 12, None), # Partial
+        ('Luis', 'Sánchez', '999555666', 5, 5, 2000), # Full
     ]
     cust_objs = []
-    for f, l, p in customers:
+    for f, l, p, d, m, y in customers:
         c, _ = Customer.objects.get_or_create(
             first_name=f, last_name=l, organization=org,
-            defaults={'phone': p, 'email': f'{f.lower()}@gmail.com'}
+            defaults={
+                'phone': p, 
+                'email': f'{f.lower()}@gmail.com',
+                'birth_day': d,
+                'birth_month': m,
+                'birth_year': y
+            }
         )
         cust_objs.append(c)
     print("Customers records created")

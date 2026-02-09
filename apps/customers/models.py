@@ -10,7 +10,9 @@ class Customer(TenantAwareModel):
     last_name = models.CharField(max_length=150, verbose_name="Apellidos")
     email = models.EmailField(blank=True, null=True, verbose_name="Correo Electrónico")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono / WhatsApp")
-    birth_date = models.DateField(blank=True, null=True, verbose_name="Fecha de Nacimiento")
+    birth_day = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Día de Nacimiento")
+    birth_month = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Mes de Nacimiento")
+    birth_year = models.PositiveIntegerField(blank=True, null=True, verbose_name="Año de Nacimiento")
     
     # Datos internos
     notes = models.TextField(blank=True, verbose_name="Notas Internas")
@@ -31,3 +33,19 @@ class Customer(TenantAwareModel):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def birthday_display(self):
+        if not self.birth_day or not self.birth_month:
+            return "-"
+        
+        meses = [
+            'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+        ]
+        mes_nombre = meses[self.birth_month - 1]
+        
+        display = f"{self.birth_day} {mes_nombre}"
+        if self.birth_year:
+            display += f" {self.birth_year}"
+        return display

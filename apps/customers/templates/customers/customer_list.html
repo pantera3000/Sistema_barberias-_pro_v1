@@ -47,7 +47,7 @@
                         <div><i class="fas fa-envelope text-muted me-1"></i> {{ customer.email|default:"-" }}</div>
                         <div><i class="fas fa-phone text-muted me-1"></i> {{ customer.phone|default:"-" }}</div>
                     </td>
-                    <td>{{ customer.birth_date|date:"d M Y"|default:"-" }}</td>
+                    <td>{{ customer.birthday_display }}</td>
                     <td>
                         {% if customer.is_active %}
                         <span class="badge bg-success">Activo</span>

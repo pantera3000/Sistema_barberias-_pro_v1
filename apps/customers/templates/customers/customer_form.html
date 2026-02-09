@@ -40,10 +40,20 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="{{ form.birth_date.id_for_label }}" class="form-label">Fecha de Nacimiento</label>
-                        {{ form.birth_date }}
-                        {{ form.birth_date.errors }}
+                    <div class="row gx-2">
+                        <label class="form-label">Fecha de Nacimiento (Año opcional)</label>
+                        <div class="col-md-3 mb-3">
+                            {{ form.birth_day }}
+                            <small class="text-muted">Día</small>
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            {{ form.birth_month }}
+                            <small class="text-muted">Mes</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            {{ form.birth_year }}
+                            <small class="text-muted">Año</small>
+                        </div>
                     </div>
 
                     <div class="mb-3">
