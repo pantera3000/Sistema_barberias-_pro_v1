@@ -146,8 +146,8 @@
             <p class="lead">No hay tarjetas de sellos activas.</p>
             <a href="{% url 'stamps:assign_stamps' %}" class="btn btn-primary mt-2">Dar primer sello</a>
         </div>
-    </div>
-    </div>
+    {% endfor %}
+</div>
 
 <!-- Modal Nueva Tarjeta -->
 <div class="modal fade" id="newCardModal" tabindex="-1" aria-labelledby="newCardModalLabel" aria-hidden="true">
@@ -162,7 +162,7 @@
                     {% csrf_token %}
                     <div class="mb-4">
                         <label class="form-label fw-bold">Buscar Cliente</label>
-                        <div class="input-group">
+                        <div class="input-group position-relative">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
                             <input type="text" id="customerSearchInput" class="form-control bg-light border-start-0" placeholder="Escribe nombre o teléfono..." autocomplete="off">
                         </div>
@@ -259,7 +259,8 @@
     #customerResults {
         position: absolute;
         width: 100%;
-        z-index: 1050;
+        z-index: 2000; /* Mucho más alto que el modal (1055) */
+        background: white;
     }
     .list-group-item-action {
         cursor: pointer;
@@ -292,6 +293,9 @@
         }
 
         debounceTimer = setTimeout(() => {
+            resultsDiv.innerHTML = '<div class="list-group-item text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Buscando...</div>';
+            resultsDiv.classList.remove('d-none');
+            
             fetch(`/app/customers/api/search/?q=${encodeURIComponent(q)}`)
                 .then(response => response.json())
                 .then(data => {
