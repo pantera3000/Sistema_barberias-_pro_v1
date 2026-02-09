@@ -1,0 +1,41 @@
+
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-stamp me-2"></i> {{ title }}</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Buscar Cliente</label>
+                        {{ form.customer }}
+                        <div class="form-text">Selecciona el cliente que visitó hoy la barbería.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Cantidad de Sellos</label>
+                        {{ form.quantity }}
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus-circle me-2"></i> Agregar Sellos
+                        </button>
+                        <a href="{% url 'stamps:card_list' %}" class="btn btn-outline-secondary">
+                            Ver Tarjetas Activas
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

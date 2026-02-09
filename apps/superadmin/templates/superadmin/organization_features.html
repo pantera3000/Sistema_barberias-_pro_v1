@@ -1,0 +1,98 @@
+
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="fas fa-cogs text-primary"></i> {{ title }}</h3>
+    <a href="{% url 'superadmin:dashboard' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Volver al Dashboard
+    </a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        <!-- Columna Izquierda: Modulos y Features -->
+        <div class="col-md-7">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Módulos y Funcionalidades</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted border-bottom pb-2 mb-3">Módulos Principales (Apps)</h6>
+                    <div class="row">
+                        {% for flag in modules %}
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="flag_{{ flag.id }}" name="feature_{{ flag.id }}" {% if flag.is_enabled %}checked{% endif %}>
+                                <label class="form-check-label fw-bold" for="flag_{{ flag.id }}">
+                                    {{ flag.get_feature_key_display }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <h6 class="text-uppercase text-muted border-bottom pb-2 mb-3 mt-4">Funciones Específicas</h6>
+                    <div class="row">
+                        {% for flag in sub_features %}
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="flag_{{ flag.id }}" name="feature_{{ flag.id }}" {% if flag.is_enabled %}checked{% endif %}>
+                                <label class="form-check-label" for="flag_{{ flag.id }}">
+                                    {{ flag.get_feature_key_display }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Límites -->
+        <div class="col-md-5">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Límites de Uso y Cuotas</h5>
+                </div>
+                <div class="card-body">
+                    {% for limit in limits %}
+                    <div class="mb-3 border-bottom pb-3">
+                        <label class="form-label fw-bold">{{ limit.get_limit_type_display }}</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Máximo</span>
+                            <input type="number" class="form-control" name="limit_value_{{ limit.id }}" value="{{ limit.limit_value }}">
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="enforce_{{ limit.id }}" name="limit_enforce_{{ limit.id }}" {% if limit.enforce_limit %}checked{% endif %}>
+                                <label class="form-check-label small" for="enforce_{{ limit.id }}">Forzar límite</label>
+                            </div>
+                            <div class="input-group input-group-sm w-50">
+                                <span class="input-group-text">Alerta %</span>
+                                <input type="number" class="form-control" name="limit_warning_{{ limit.id }}" value="{{ limit.warning_threshold }}">
+                            </div>
+                        </div>
+                        <small class="text-muted">Uso actual: {{ limit.current_usage }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-success w-100 btn-lg">
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}

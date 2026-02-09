@@ -1,0 +1,14 @@
+
+{% extends 'base.html' %}
+{% block title %}Sin Organización{% endblock %}
+{% block content %}
+<div class="vh-100 d-flex flex-column align-items-center justify-content-center text-center">
+    <div class="mb-4 text-warning">
+        <i class="fas fa-exclamation-triangle fa-5x"></i>
+    </div>
+    <h2 class="mb-3">Cuenta sin Organización Asignada</h2>
+    <p class="lead text-muted mb-4">Tu usuario no pertenece a ninguna barbería activa en el sistema.</p>
+    <p>Por favor, contacta al administrador del sistema.</p>
+    <a href="{% url 'users:logout' %}" class="btn btn-outline-danger">Cerrar Sesión</a>
+</div>
+{% endblock %}

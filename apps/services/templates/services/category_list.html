@@ -1,0 +1,59 @@
+
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">{{ title }}</h1>
+    <a href="{% url 'services:service_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Volver a Servicios
+    </a>
+</div>
+
+<div class="row">
+    <!-- Formulario Nueva Categoría -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">Nueva Categoría</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-success w-100">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de Categorías -->
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <ul class="list-group list-group-flush">
+                {% for cat in categories %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold">{{ cat.name }}</span>
+                        {% if cat.description %}
+                        <small class="text-muted d-block">{{ cat.description }}</small>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'services:category_delete' cat.pk %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Seguro que deseas eliminar esta categoría?');">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </li>
+                {% empty %}
+                <li class="list-group-item text-center text-muted py-4">No hay categorías registradas.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

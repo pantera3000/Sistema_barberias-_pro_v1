@@ -1,0 +1,159 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - {{ user.organization.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Bienvenido, {{ user.first_name }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary">Compartir</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary">Exportar</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+            <i class="fas fa-calendar"></i> Esta semana
+        </button>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
+    <div class="col">
+        <div class="card h-100 shadow-sm border-start border-4 border-primary">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="card-title text-muted mb-0">Clientes Totales</h6>
+                    <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle p-2">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-1">{{ total_customers }}</h3>
+                <small class="text-success"><i class="fas fa-arrow-up"></i> {{ new_customers_today }} hoy</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col">
+        <div class="card h-100 shadow-sm border-start border-4 border-success">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="card-title text-muted mb-0">Puntos Emitidos (Hoy)</h6>
+                    <div class="icon-shape bg-success bg-opacity-10 text-success rounded-circle p-2">
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-1">{{ points_today }}</h3>
+                <small class="text-muted">Fidelización activa</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card h-100 shadow-sm border-start border-4 border-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="card-title text-muted mb-0">Tarjetas Activas</h6>
+                    <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-circle p-2">
+                        <i class="fas fa-ticket-alt"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-1">{{ active_stamp_cards }}</h3>
+                <small class="text-muted">En progreso</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col">
+        <div class="card h-100 shadow-sm border-start border-4 border-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="card-title text-muted mb-0">Citas Hoy</h6>
+                    <div class="icon-shape bg-info bg-opacity-10 text-info rounded-circle p-2">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-1">0</h3>
+                <small class="text-muted">Próximamente</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Activity -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold">Actividad Reciente</h6>
+                <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-sm btn-link text-decoration-none">Ver todo</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Acción</th>
+                            <th class="text-end">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for txn in recent_activity %}
+                        <tr>
+                            <td>{{ txn.created_at|date:"H:i" }}</td>
+                            <td class="fw-bold">{{ txn.customer.full_name }}</td>
+                            <td>
+                                {% if txn.transaction_type == 'EARN' %}
+                                <span class="badge bg-success-subtle text-success">Ganó Puntos</span>
+                                {% elif txn.transaction_type == 'REDEEM' %}
+                                <span class="badge bg-danger-subtle text-danger">Canjeó Puntos</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary">Ajuste</span>
+                                {% endif %}
+                                <small class="text-muted d-block">{{ txn.description|truncatechars:30 }}</small>
+                            </td>
+                            <td class="text-end fw-bold {% if txn.transaction_type == 'REDEEM' %}text-danger{% else %}text-success{% endif %}">
+                                {% if txn.transaction_type == 'REDEEM' %}-{% else %}+{% endif %}{{ txn.points }}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No hay actividad reciente.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold">Acciones Rápidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'customers:customer_create' %}" class="btn btn-outline-primary text-start p-3">
+                        <i class="fas fa-user-plus me-3 fa-lg"></i> Nuevo Cliente
+                    </a>
+                    <a href="{% url 'loyalty:assign_points' %}" class="btn btn-outline-success text-start p-3">
+                        <i class="fas fa-star me-3 fa-lg"></i> Asignar Puntos
+                    </a>
+                    <a href="{% url 'stamps:assign_stamps' %}" class="btn btn-outline-warning text-start p-3">
+                        <i class="fas fa-stamp me-3 fa-lg"></i> Poner Sello
+                    </a>
+                    <a href="{% url 'rewards:redeem_reward' %}" class="btn btn-outline-danger text-start p-3">
+                        <i class="fas fa-gift me-3 fa-lg"></i> Canjear Premio
+                    </a>
+                    <a href="{% url 'services:service_list' %}" class="btn btn-outline-secondary text-start p-3">
+                        <i class="fas fa-cut me-3 fa-lg"></i> Editar Servicios
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

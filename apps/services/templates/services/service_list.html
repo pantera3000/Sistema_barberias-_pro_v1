@@ -1,0 +1,65 @@
+
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ title }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'services:category_list' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-tags"></i> Gestionar Categorías
+        </a>
+        <a href="{% url 'services:service_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nuevo Servicio
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Duración</th>
+                    <th>Puntos</th>
+                    <th>Estado</th>
+                    <th class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services %}
+                <tr>
+                    <td class="fw-bold">{{ service.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ service.category.name|default:"General" }}</span></td>
+                    <td>{{ user.organization.currency }} {{ service.price }}</td>
+                    <td>{{ service.duration_minutes }} min</td>
+                    <td><span class="badge bg-warning text-dark">{{ service.points_reward }} pts</span></td>
+                    <td>
+                        {% if service.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'services:service_edit' service.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        No hay servicios registrados.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

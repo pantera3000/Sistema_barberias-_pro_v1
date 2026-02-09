@@ -1,0 +1,10 @@
+
+{% extends 'base.html' %}
+{% block title %}Dashboard Negocio{% endblock %}
+{% block content %}
+<div class="alert alert-info">
+    <h4>Bienvenido al Dashboard de {{ user.organization.name }}</h4>
+    <p>Rol: {% if user.is_owner %}Dueño{% else %}Trabajador{% endif %}</p>
+    <p>Esta sección está en construcción.</p>
+</div>
+{% endblock %}

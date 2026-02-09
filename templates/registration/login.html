@@ -1,0 +1,78 @@
+
+{% extends 'base.html' %}
+
+{% block title %}Iniciar Sesión - Barber SaaS{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop') no-repeat center center fixed;
+        background-size: cover;
+    }
+    .overlay {
+        background-color: rgba(0, 0, 0, 0.6);
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        z-index: -1;
+    }
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    .form-floating:focus-within {
+        z-index: 2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="overlay"></div>
+<div class="container d-flex align-items-center justify-content-center" style="min-height: 90vh;">
+    <div class="col-md-5 col-lg-4">
+        <div class="card login-card p-4">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-cut fa-2x"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark">Barber SaaS</h3>
+                    <p class="text-muted text-small">Bienvenido de nuevo</p>
+                </div>
+
+                {% if form.errors %}
+                <div class="alert alert-danger py-2 small">
+                    Usuario o contraseña incorrectos.
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-floating mb-3">
+                        <input type="email" name="username" class="form-control" id="id_username" placeholder="name@example.com" required autofocus>
+                        <label for="id_username">Correo Electrónico</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" name="password" class="form-control" id="id_password" placeholder="Password" required>
+                        <label for="id_password">Contraseña</label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary btn-lg" type="submit">INGRESAR</button>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <a href="#" class="text-decoration-none small text-muted">¿Olvidaste tu contraseña?</a>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center border-0 bg-transparent py-3">
+                <small class="text-muted">&copy; 2026 Sistema de Fidelización V7</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

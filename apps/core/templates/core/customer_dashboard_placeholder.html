@@ -1,0 +1,11 @@
+
+{% extends 'base.html' %}
+{% block title %}Mi Cuenta{% endblock %}
+{% block content %}
+<div class="alert alert-success">
+    <h4>Bienvenido, {{ user.get_full_name }}</h4>
+    <p>Membresía: Cliente</p>
+    <p>Puntos Acumulados: 0 (Simulado)</p>
+    <p>Esta sección está en construcción.</p>
+</div>
+{% endblock %}
