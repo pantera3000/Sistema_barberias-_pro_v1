@@ -31,23 +31,36 @@
             <div class="card-body text-center">
                 <h5 class="card-title text-muted mb-3">{{ card.promotion.name }}</h5>
                 
-                <div class="display-4 fw-bold mb-3">
-                    {{ card.current_stamps }} <span class="text-muted fs-4">/ {{ card.promotion.total_stamps_needed }}</span>
-                </div>
-                
-                <div class="progress mb-3" style="height: 10px;">
-                    <div class="progress-bar {% if card.is_completed %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%;"></div>
+                <div class="stamp-grid mb-4">
+                    {% with ""|center:card.promotion.total_stamps_needed as range %}
+                    {% for _ in range %}
+                        <div class="stamp-slot {% if forloop.counter <= card.current_stamps %}active{% endif %}">
+                            {% if forloop.counter <= card.current_stamps %}
+                                <i class="fas fa-stamp"></i>
+                            {% else %}
+                                <span class="slot-number">{{ forloop.counter }}</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    {% endwith %}
                 </div>
                 
                 {% if card.is_completed %}
-                <div class="alert alert-success py-2 mb-3">
-                    <strong>Premio:</strong> {{ card.promotion.reward_description }}
+                <div class="alert alert-success py-2 mb-3 border-dashed">
+                    <i class="fas fa-medal me-2"></i><strong>¡Lista para canjear!</strong><br>
+                    <small>{{ card.promotion.reward_description }}</small>
                 </div>
-                <a href="{% url 'stamps:redeem_card' card.pk %}" class="btn btn-success w-100" onclick="return confirm('¿Confirmar canje del premio? La tarjeta se archivará.');">
+                <a href="{% url 'stamps:redeem_card' card.pk %}" class="btn btn-success btn-lg w-100 shadow-sm" onclick="return confirm('¿Confirmar canje del premio? La tarjeta se archivará.');">
                     <i class="fas fa-gift me-2"></i> CANJEAR PREMIO
                 </a>
                 {% else %}
-                <p class="text-muted small">Faltan {{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }} sellos para el premio.</p>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Avance: {{ card.current_stamps }} / {{ card.promotion.total_stamps_needed }}</span>
+                    <span class="badge rounded-pill bg-light text-primary border">Faltan {{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }}</span>
+                </div>
+                <div class="progress" style="height: 6px; border-radius: 10px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%;"></div>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -62,4 +75,52 @@
     </div>
     {% endfor %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stamp-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        background: #fdfdfd;
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px dashed #dee2e6;
+    }
+    .stamp-slot {
+        aspect-ratio: 1/1;
+        border: 2px solid #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .stamp-slot.active {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+    }
+    .slot-number {
+        font-size: 0.8rem;
+        color: #adb5bd;
+        font-weight: 600;
+    }
+    .border-dashed {
+        border-style: dashed !important;
+    }
+    .card {
+        transition: transform 0.2s;
+        border: none;
+        border-radius: 15px;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
 {% endblock %}
