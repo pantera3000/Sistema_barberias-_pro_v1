@@ -10,4 +10,5 @@ urlpatterns = [
     path('assign/', views.assign_stamps, name='assign_stamps'),
     path('cards/', views.card_list, name='card_list'),
     path('cards/<int:pk>/redeem/', views.redeem_card, name='redeem_card'),
+    path('cards/<int:pk>/add-stamp/', views.add_stamp_direct, name='add_stamp_direct'),
 ]
