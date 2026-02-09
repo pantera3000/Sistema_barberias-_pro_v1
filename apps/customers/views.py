@@ -82,7 +82,7 @@ def customer_delete(request, pk):
 def customer_search_api(request):
     """API para búsqueda rápida de clientes (AJAX)"""
     query = request.GET.get('q', '')
-    if len(query) < 2:
+    if len(query) < 1:
         return JsonResponse({'results': []})
         
     customers = Customer.objects.filter(

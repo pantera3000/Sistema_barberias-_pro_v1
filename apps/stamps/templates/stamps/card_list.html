@@ -162,12 +162,14 @@
                     {% csrf_token %}
                     <div class="mb-4">
                         <label class="form-label fw-bold">Buscar Cliente</label>
-                        <div class="input-group position-relative">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" id="customerSearchInput" class="form-control bg-light border-start-0" placeholder="Escribe nombre o teléfono..." autocomplete="off">
-                        </div>
-                        <div id="customerResults" class="list-group mt-2 shadow-sm d-none" style="max-height: 200px; overflow-y: auto;">
-                            <!-- Resultados AJAX -->
+                        <div class="position-relative">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="customerSearchInput" class="form-control bg-light border-start-0" placeholder="Escribe nombre o teléfono..." autocomplete="off">
+                            </div>
+                            <div id="customerResults" class="list-group mt-1 shadow-lg d-none" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Resultados AJAX -->
+                            </div>
                         </div>
                         <input type="hidden" name="customer" id="selectedCustomerId" required>
                     </div>
@@ -297,7 +299,10 @@
             resultsDiv.classList.remove('d-none');
             
             fetch(`/app/customers/api/search/?q=${encodeURIComponent(q)}`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('Error en el servidor');
+                    return response.json();
+                })
                 .then(data => {
                     resultsDiv.innerHTML = '';
                     if (data.results.length > 0) {
@@ -320,6 +325,10 @@
                         resultsDiv.innerHTML = '<div class="list-group-item text-muted">No se encontraron clientes</div>';
                         resultsDiv.classList.remove('d-none');
                     }
+                })
+                .catch(err => {
+                    console.error(err);
+                    resultsDiv.innerHTML = '<div class="list-group-item text-danger">Error al buscar. Intenta de nuevo.</div>';
                 });
         }, 300);
     });
