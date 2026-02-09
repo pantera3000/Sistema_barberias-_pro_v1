@@ -9,4 +9,7 @@ urlpatterns = [
     path('new/', views.customer_create, name='customer_create'),
     path('<int:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+    
+    # API for AJAX search
+    path('api/search/', views.customer_search_api, name='customer_search_api'),
 ]

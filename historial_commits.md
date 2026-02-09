@@ -4,6 +4,8 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| e42b142 | 2026-02-09 15:45:00 | Mejora: modal de nueva tarjeta con buscador AJAX y auto-asignación |
+| b9beff2 | 2026-02-09 11:20:00 | Mejora: flujo de canje acumulativo y app del cliente para sellos |
 | d3518bb | 2026-02-09 10:55:00 | Mejora: buscador, cinta de estadísticas y sello directo en tarjetas |
 | 3d8a303 | 2026-02-09 10:45:00 | Mejora: Tarjeta de sellos visual (estilo punch-card) |
 | 2b778cf | 2026-02-09 10:17:40 | Registro: Omitir respaldos en Git |

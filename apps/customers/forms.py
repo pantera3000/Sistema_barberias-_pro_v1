@@ -25,6 +25,13 @@ class CustomerForm(forms.ModelForm):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
+    auto_assign_stamps = forms.BooleanField(
+        label="Asignar tarjeta de sellos automáticamente",
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
     class Meta:
         model = Customer
         fields = ['first_name', 'last_name', 'email', 'phone', 'birth_day', 'birth_month', 'birth_year', 'notes', 'is_active']

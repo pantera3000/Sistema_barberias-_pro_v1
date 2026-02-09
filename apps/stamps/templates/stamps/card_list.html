@@ -7,9 +7,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2">{{ title }}</h1>
     <div class="btn-group">
-        <a href="{% url 'stamps:assign_stamps' %}" class="btn btn-primary btn-lg shadow-sm">
+        <button type="button" class="btn btn-primary btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#newCardModal">
             <i class="fas fa-plus-circle me-2"></i> Nueva Tarjeta
-        </a>
+        </button>
     </div>
 </div>
 
@@ -147,7 +147,58 @@
             <a href="{% url 'stamps:assign_stamps' %}" class="btn btn-primary mt-2">Dar primer sello</a>
         </div>
     </div>
-    {% endfor %}
+    </div>
+
+<!-- Modal Nueva Tarjeta -->
+<div class="modal fade" id="newCardModal" tabindex="-1" aria-labelledby="newCardModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="newCardModalLabel">Crear Nueva Tarjeta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form action="{% url 'stamps:assign_stamps' %}" method="post" id="newCardForm">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Buscar Cliente</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                            <input type="text" id="customerSearchInput" class="form-control bg-light border-start-0" placeholder="Escribe nombre o teléfono..." autocomplete="off">
+                        </div>
+                        <div id="customerResults" class="list-group mt-2 shadow-sm d-none" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Resultados AJAX -->
+                        </div>
+                        <input type="hidden" name="customer" id="selectedCustomerId" required>
+                    </div>
+
+                    <div id="selectedCustomerInfo" class="alert alert-info d-none mb-4 d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                        <div>
+                            <span class="fw-bold d-block" id="selectedCustomerName"></span>
+                            <small id="selectedCustomerPhone"></small>
+                        </div>
+                        <button type="button" class="btn-close ms-auto" id="clearSelectedCustomer"></button>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">¿Cuántos sellos poner ahora?</label>
+                        <div class="input-group">
+                            <button type="button" class="btn btn-outline-secondary" onclick="decrementStamp()">-</button>
+                            <input type="number" name="quantity" id="stampQuantity" class="form-control text-center fw-bold" value="1" min="1">
+                            <button type="button" class="btn btn-outline-secondary" onclick="incrementStamp()">+</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm py-3" id="submitNewCard" disabled>
+                        <i class="fas fa-plus-circle me-2"></i> CREAR TARJETA
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -204,5 +255,103 @@
         70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
         100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
     }
+    
+    #customerResults {
+        position: absolute;
+        width: 100%;
+        z-index: 1050;
+    }
+    .list-group-item-action {
+        cursor: pointer;
+    }
+    .list-group-item-action:hover {
+        background-color: #f8f9fa;
+    }
 </style>
+
+<script>
+    const searchInput = document.getElementById('customerSearchInput');
+    const resultsDiv = document.getElementById('customerResults');
+    const selectedInfo = document.getElementById('selectedCustomerInfo');
+    const hiddenIdInput = document.getElementById('selectedCustomerId');
+    const submitBtn = document.getElementById('submitNewCard');
+    const nameSpan = document.getElementById('selectedCustomerName');
+    const phoneSmall = document.getElementById('selectedCustomerPhone');
+    const clearBtn = document.getElementById('clearSelectedCustomer');
+    const quantityInput = document.getElementById('stampQuantity');
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const q = this.value;
+        
+        if (q.length < 2) {
+            resultsDiv.classList.add('d-none');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/app/customers/api/search/?q=${encodeURIComponent(q)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    if (data.results.length > 0) {
+                        data.results.forEach(customer => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'list-group-item list-group-item-action py-3';
+                            btn.innerHTML = `
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold">${customer.full_name}</span>
+                                    <small class="text-muted">${customer.phone}</small>
+                                </div>
+                                <small class="text-muted d-block">${customer.email}</small>
+                            `;
+                            btn.onclick = () => selectCustomer(customer);
+                            resultsDiv.appendChild(btn);
+                        });
+                        resultsDiv.classList.remove('d-none');
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted">No se encontraron clientes</div>';
+                        resultsDiv.classList.remove('d-none');
+                    }
+                });
+        }, 300);
+    });
+
+    function selectCustomer(customer) {
+        hiddenIdInput.value = customer.id;
+        nameSpan.innerText = customer.full_name;
+        phoneSmall.innerText = customer.phone;
+        selectedInfo.classList.remove('d-none');
+        searchInput.closest('.mb-4').classList.add('d-none');
+        resultsDiv.classList.add('d-none');
+        submitBtn.disabled = false;
+    }
+
+    clearBtn.onclick = () => {
+        hiddenIdInput.value = '';
+        selectedInfo.classList.add('d-none');
+        searchInput.closest('.mb-4').classList.remove('d-none');
+        searchInput.value = '';
+        submitBtn.disabled = true;
+    };
+
+    function incrementStamp() {
+        quantityInput.value = parseInt(quantityInput.value) + 1;
+    }
+
+    function decrementStamp() {
+        const val = parseInt(quantityInput.value);
+        if (val > 1) quantityInput.value = val - 1;
+    }
+
+    // Cerrar resultados al clicar fuera
+    document.addEventListener('click', function(event) {
+        if (!searchInput.contains(event.target) && !resultsDiv.contains(event.target)) {
+            resultsDiv.classList.add('d-none');
+        }
+    });
+</script>
 {% endblock %}
