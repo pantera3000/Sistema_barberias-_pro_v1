@@ -287,7 +287,7 @@
         clearTimeout(debounceTimer);
         const q = this.value;
         
-        if (q.length < 2) {
+        if (q.length < 1) {
             resultsDiv.classList.add('d-none');
             return;
         }
@@ -329,7 +329,7 @@
         nameSpan.innerText = customer.full_name;
         phoneSmall.innerText = customer.phone;
         selectedInfo.classList.remove('d-none');
-        searchInput.closest('.mb-4').classList.add('d-none');
+        // searchInput.closest('.mb-4').classList.add('d-none'); // Mantenemos el buscador visible
         resultsDiv.classList.add('d-none');
         submitBtn.disabled = false;
     }
@@ -337,9 +337,10 @@
     clearBtn.onclick = () => {
         hiddenIdInput.value = '';
         selectedInfo.classList.add('d-none');
-        searchInput.closest('.mb-4').classList.remove('d-none');
+        // searchInput.closest('.mb-4').classList.remove('d-none');
         searchInput.value = '';
         submitBtn.disabled = true;
+        searchInput.focus();
     };
 
     function incrementStamp() {

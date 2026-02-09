@@ -4,6 +4,7 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| 18efd81 | 2026-02-09 15:55:00 | Corrección: visibilidad y UX del buscador AJAX en modal |
 | e42b142 | 2026-02-09 15:45:00 | Mejora: modal de nueva tarjeta con buscador AJAX y auto-asignación |
 | b9beff2 | 2026-02-09 11:20:00 | Mejora: flujo de canje acumulativo y app del cliente para sellos |
 | d3518bb | 2026-02-09 10:55:00 | Mejora: buscador, cinta de estadísticas y sello directo en tarjetas |
