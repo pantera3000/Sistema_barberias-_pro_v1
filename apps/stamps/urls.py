@@ -11,4 +11,8 @@ urlpatterns = [
     path('cards/', views.card_list, name='card_list'),
     path('cards/<int:pk>/redeem/', views.redeem_card, name='redeem_card'),
     path('cards/<int:pk>/add-stamp/', views.add_stamp_direct, name='add_stamp_direct'),
+    
+    # Client side
+    path('my-stamps/', views.my_stamps, name='my_stamps'),
+    path('my-stamps/request/<int:pk>/', views.request_redemption, name='request_redemption'),
 ]

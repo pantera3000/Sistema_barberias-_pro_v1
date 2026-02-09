@@ -21,8 +21,7 @@ def dashboard_dispatch(request):
         return redirect('core:dashboard')
         
     if user.is_customer:
-        # TODO: Redirigir al perfil del cliente
-        return render(request, 'core/customer_dashboard_placeholder.html')
+        return redirect('stamps:my_stamps')
         
     return redirect('users:login')
 

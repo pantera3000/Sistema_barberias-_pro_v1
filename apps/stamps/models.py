@@ -38,6 +38,10 @@ class StampCard(TenantAwareModel):
     
     last_stamp_at = models.DateTimeField(auto_now=True, verbose_name="Último sello")
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Nuevos campos para el flujo A
+    redemption_requested = models.BooleanField(default=False, verbose_name="Canje solicitado")
+    requested_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de solicitud")
 
     class Meta:
         verbose_name = "Tarjeta de Sellos"

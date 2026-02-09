@@ -42,41 +42,34 @@ def promotion_edit(request, pk):
 
 @login_required
 def assign_stamps(request):
-    """Agregar sellos a un cliente"""
+    """Agregar sellos a un cliente - Soporta acumulación"""
     if request.method == 'POST':
         form = StampAssignmentForm(request.POST, tenant=request.tenant)
         if form.is_valid():
             customer = form.cleaned_data['customer']
             quantity = form.cleaned_data['quantity']
             
-            # Buscar promoción activa (Tomamos la primera activa por defecto para simplificar UX)
             active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
-            
             if not active_promo:
-                messages.error(request, "No hay ninguna promoción de sellos activa. Configura una primero.")
+                messages.error(request, "No hay ninguna promoción activa.")
                 return redirect('stamps:promotion_list')
             
-            # Buscar tarjeta activa del cliente
             with transaction.atomic():
+                # Buscamos SOLO la tarjeta que aún no está llena
                 card, created = StampCard.objects.get_or_create(
                     customer=customer, 
                     promotion=active_promo, 
+                    is_completed=False, # <-- Clave para acumulación
                     is_redeemed=False,
-                    is_completed=False,
                     defaults={'current_stamps': 0}
                 )
                 
-                # Sumar sellos
                 card.current_stamps += quantity
-                
-                # Verificar si completó
                 if card.current_stamps >= active_promo.total_stamps_needed:
                     card.is_completed = True
-                    messages.success(request, f"¡Felicidades! {customer.full_name} completó su tarjeta. Ganó: {active_promo.reward_description}")
+                    messages.success(request, f"¡Tarjeta completada para {customer.full_name}!")
                 
                 card.save()
-                
-                # Registrar transacción
                 StampTransaction.objects.create(
                     organization=request.tenant,
                     card=card,
@@ -85,18 +78,17 @@ def assign_stamps(request):
                     performed_by=request.user
                 )
                 
-                messages.success(request, f"Se agregaron {quantity} sellos a {customer.full_name}.")
+                messages.success(request, f"Se agregaron {quantity} sellos.")
                 return redirect('stamps:card_list')
     else:
         form = StampAssignmentForm(tenant=request.tenant)
-        
     return render(request, 'stamps/assign_stamps.html', {'form': form, 'title': 'Agregar Sellos'})
 
 @login_required
 def card_list(request):
-    """Ver estado de tarjetas de los clientes con buscador"""
+    """Ver estado de tarjetas con buscador y solicitudes"""
     query = request.GET.get('q', '')
-    cards = StampCard.objects.filter(organization=request.tenant, is_redeemed=False).select_related('customer', 'promotion')
+    cards = StampCard.objects.filter(organization=request.tenant, is_redeemed=False).select_related('customer', 'promotion').order_by('-redemption_requested', '-last_stamp_at')
     
     if query:
         cards = cards.filter(
@@ -106,17 +98,13 @@ def card_list(request):
             models.Q(customer__email__icontains=query)
         )
 
-    # Estadísticas para el ribbon
     from django.utils import timezone
     today = timezone.now().date()
     stats = {
-        'total_active': cards.count(),
-        'completed': cards.filter(is_completed=True).count(),
-        'stamps_today': StampTransaction.objects.filter(
-            organization=request.tenant, 
-            created_at__date=today, 
-            action='ADD'
-        ).count()
+        'total_active': cards.filter(is_completed=False).count(),
+        'completed': cards.filter(is_completed=True, redemption_requested=False).count(),
+        'requested': cards.filter(redemption_requested=True).count(),
+        'stamps_today': StampTransaction.objects.filter(organization=request.tenant, created_at__date=today, action='ADD').count()
     }
 
     return render(request, 'stamps/card_list.html', {
@@ -128,23 +116,21 @@ def card_list(request):
 
 @login_required
 def add_stamp_direct(request, pk):
-    """Agregar un sello directamente desde la tarjeta"""
+    """Agregar un sello directamente - Soporta creación de nueva tarjeta si la actual se llena"""
     if request.method == 'POST':
         card = get_object_or_404(StampCard, pk=pk, organization=request.tenant, is_redeemed=False)
         
         if card.is_completed:
-            messages.warning(request, "Esta tarjeta ya está completada.")
-            return redirect('stamps:card_list')
+            # Si intentan poner sello a una completa, redirigimos a crear una nueva
+            return redirect('stamps:assign_stamps') # O podríamos automatizarlo aquí
             
         with transaction.atomic():
             card.current_stamps += 1
             if card.current_stamps >= card.promotion.total_stamps_needed:
                 card.is_completed = True
-                messages.success(request, f"¡Tarjeta completada! {card.customer.full_name} ganó su premio.")
+                messages.success(request, f"¡Tarjeta completada para {card.customer.full_name}!")
             
             card.save()
-            
-            # Registrar transacción
             StampTransaction.objects.create(
                 organization=request.tenant,
                 card=card,
@@ -152,10 +138,45 @@ def add_stamp_direct(request, pk):
                 quantity=1,
                 performed_by=request.user
             )
-            
-            messages.success(request, f"Sello añadido a {card.customer.full_name}.")
+            messages.success(request, f"Sello añadido.")
             
     return redirect('stamps:card_list')
+
+# --- CLIENT VIEWS ---
+
+@login_required
+def my_stamps(request):
+    """Vista para que el cliente vea sus propias tarjetas"""
+    # Intentar obtener el registro de cliente asociado por email
+    customer = Customer.objects.filter(email=request.user.email, organization=request.user.organization).first()
+    
+    if not customer:
+        return render(request, 'stamps/no_customer_profile.html')
+        
+    cards = StampCard.objects.filter(customer=customer, is_redeemed=False).select_related('promotion').order_by('-current_stamps')
+    
+    return render(request, 'stamps/my_stamps.html', {
+        'cards': cards,
+        'customer': customer,
+        'title': 'Mis Sellos'
+    })
+
+@login_required
+def request_redemption(request, pk):
+    """El cliente solicita canjear su premio"""
+    if request.method == 'POST':
+        card = get_object_or_404(StampCard, pk=pk, is_completed=True, is_redeemed=False)
+        # Validar pertenencia
+        if card.customer.email != request.user.email:
+            messages.error(request, "No tienes permiso para esta acción.")
+            return redirect('stamps:my_stamps')
+            
+        card.redemption_requested = True
+        card.requested_at = timezone.now()
+        card.save()
+        messages.success(request, "¡Premio solicitado! Muéstrale esta pantalla al barbero.")
+        
+    return redirect('stamps:my_stamps')
 
 @login_required
 def redeem_card(request, pk):

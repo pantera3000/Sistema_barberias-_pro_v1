@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .customer-card {
+        border-radius: 20px;
+        background: linear-gradient(145deg, #ffffff, #f0f0f0);
+        box-shadow: 10px 10px 20px #d9d9d9, -10px -10px 20px #ffffff;
+        border: none;
+        overflow: hidden;
+    }
+    .stamp-grid-client {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        padding: 20px;
+    }
+    .stamp-slot-client {
+        aspect-ratio: 1/1;
+        border: 2px solid #dee2e6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .stamp-slot-client.active {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+        transform: scale(1.1) rotate(5deg);
+        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
+    }
+    .stamp-slot-client i {
+        font-size: 1.2rem;
+    }
+    .requested-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+    .btn-claim {
+        border-radius: 12px;
+        padding: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .confetti-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        pointer-events: none;
+        background: radial-gradient(circle, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 100%);
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="text-center mb-4">
+            <h1 class="h3 fw-bold text-primary">¡Hola, {{ customer.first_name }}! 👋</h1>
+            <p class="text-muted">Aquí está tu progreso de fidelidad en <strong>{{ request.tenant.name }}</strong></p>
+        </div>
+
+        {% for card in cards %}
+        <div class="card customer-card mb-4 position-relative {% if card.is_completed %}border border-success border-2{% endif %}">
+            
+            {% if card.redemption_requested %}
+            <div class="requested-badge">
+                <span class="badge bg-warning text-dark p-2 shadow-sm">
+                    <i class="fas fa-clock me-1"></i> SOLICITADO
+                </span>
+            </div>
+            {% endif %}
+
+            <div class="card-body p-0">
+                <div class="p-4 text-center">
+                    <h5 class="fw-bold mb-1">{{ card.promotion.name }}</h5>
+                    <p class="small text-muted mb-0">Premio: {{ card.promotion.reward_description }}</p>
+                </div>
+
+                <div class="stamp-grid-client bg-light">
+                    {% with ""|center:card.promotion.total_stamps_needed as range %}
+                    {% for _ in range %}
+                        <div class="stamp-slot-client {% if forloop.counter <= card.current_stamps %}active{% endif %}">
+                            {% if forloop.counter <= card.current_stamps %}
+                                <i class="fas fa-stamp"></i>
+                            {% else %}
+                                <span class="text-muted small opacity-50">{{ forloop.counter }}</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    {% endwith %}
+                </div>
+
+                <div class="p-4">
+                    {% if card.is_completed %}
+                        {% if card.redemption_requested %}
+                            <div class="alert alert-warning text-center border-0 shadow-sm mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Tu solicitud está pendiente. ¡Muestra este código al barbero!
+                                <div class="h3 fw-bold mt-2">#{{ card.pk }}{{ card.customer.id }}</div>
+                            </div>
+                        {% else %}
+                            <div class="text-center mb-3">
+                                <div class="h2 mb-1">🎉</div>
+                                <h4 class="fw-bold text-success">¡TARJETA LLENA!</h4>
+                            </div>
+                            <form action="{% url 'stamps:request_redemption' card.pk %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success w-100 btn-claim shadow-sm">
+                                    <i class="fas fa-gift me-2"></i> RECLAMAR MI PREMIO
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold">PROGRESO</span>
+                            <span class="small text-muted">{{ card.current_stamps }} de {{ card.promotion.total_stamps_needed }}</span>
+                        </div>
+                        <div class="progress" style="height: 12px; border-radius: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%;"></div>
+                        </div>
+                        <p class="text-center small text-muted mt-3 mb-0">
+                            Te faltan <strong>{{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }}</strong> sellos para tu premio.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <div class="display-1 text-muted opacity-25 mb-4">
+                <i class="fas fa-ticket-alt"></i>
+            </div>
+            <h4>Aún no tienes sellos</h4>
+            <p class="text-muted">Visítanos pronto para empezar a ganar premios.</p>
+        </div>
+        {% endfor %}
+
+        <div class="text-center mt-5 mb-4">
+            <a href="{% url 'core:dashboard' %}" class="btn btn-link text-muted">
+                <i class="fas fa-chevron-left me-1"></i> Volver al Inicio
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
