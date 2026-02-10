@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Sello - {{ customer.full_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center pt-5">
+    <div class="col-md-6 col-lg-4 text-center">
+        <div class="card border-0 shadow-lg" style="border-radius: 25px; overflow: hidden;">
+            <div class="bg-primary p-4 text-white">
+                <div class="display-4 mb-2"><i class="fas fa-qrcode"></i></div>
+                <h4 class="fw-bold mb-0">Escaneo Exitoso</h4>
+            </div>
+            
+            <div class="card-body p-4">
+                <div class="mb-4">
+                    <h5 class="fw-bold">{{ customer.full_name }}</h5>
+                    <p class="text-muted small">Cliente verificado</p>
+                </div>
+
+                <div class="p-3 bg-light rounded-4 mb-4">
+                    <p class="small text-muted text-uppercase fw-bold mb-2">Promoción Activa</p>
+                    <h6 class="fw-bold text-dark">{{ active_promo.name }}</h6>
+                    <small class="text-muted">{{ active_promo.reward_description }}</small>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill py-3 shadow-sm mb-3">
+                        <i class="fas fa-plus-circle me-2"></i> PUESR SELLO AHORA
+                    </button>
+                    <a href="{% url 'stamps:card_list' %}" class="btn btn-link text-muted">Cancelar</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

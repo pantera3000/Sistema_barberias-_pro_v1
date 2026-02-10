@@ -16,5 +16,6 @@ urlpatterns = [
     
     # Client side
     path('my-stamps/', views.my_stamps, name='my_stamps'),
+    path('kiosk/', views.customer_kiosk, name='customer_kiosk'),
     path('my-stamps/request/<int:pk>/', views.request_redemption, name='request_redemption'),
 ]

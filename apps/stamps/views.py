@@ -213,8 +213,16 @@ def add_stamp_customer(request, customer_id):
                 performed_by=request.user
             )
             messages.success(request, "Sello añadido correctamente.")
-            
-    return redirect('stamps:card_list')
+            return redirect('stamps:card_list')
+
+    # GET: Mostrar pantalla de confirmación (útil para escaneo QR)
+    customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
+    active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
+    
+    return render(request, 'stamps/confirm_add_stamp.html', {
+        'customer': customer,
+        'active_promo': active_promo
+    })
 
 @login_required
 def customer_history(request, customer_id):
@@ -252,6 +260,29 @@ def my_stamps(request):
         'cards': cards,
         'customer': customer,
         'title': 'Mis Sellos'
+    })
+
+@login_required
+def customer_kiosk(request):
+    """Vista simplificada con QR para identificación rápida en el local"""
+    customer = Customer.objects.filter(email=request.user.email, organization=request.user.organization).first()
+    if not customer:
+        return render(request, 'stamps/no_customer_profile.html')
+        
+    # URL que el staff escaneará para dar un sello
+    scheme = "https" if request.is_secure() else "http"
+    domain = request.get_host()
+    stamp_url = f"{scheme}://{domain}/app/stamps/customers/{customer.id}/add-stamp/"
+
+    active_cards = StampCard.objects.filter(customer=customer, is_redeemed=False).count()
+    completed_cards = StampCard.objects.filter(customer=customer, is_completed=True, is_redeemed=False).count()
+
+    return render(request, 'stamps/customer_kiosk.html', {
+        'customer': customer,
+        'stamp_url': stamp_url,
+        'active_cards': active_cards,
+        'completed_cards': completed_cards,
+        'title': 'Modo Kiosko'
     })
 
 @login_required

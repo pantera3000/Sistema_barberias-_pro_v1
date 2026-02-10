@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f0f2f5;
+        overflow-x: hidden;
+    }
+    .kiosk-container {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    .qr-card {
+        background: white;
+        border-radius: 30px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        text-align: center;
+        width: 100%;
+        max-width: 400px;
+        position: relative;
+    }
+    #qrcode {
+        margin: 20px auto;
+        display: flex;
+        justify-content: center;
+    }
+    #qrcode img {
+        border: 10px solid white;
+        border-radius: 10px;
+    }
+    .kiosk-badge {
+        font-size: 0.8rem;
+        padding: 8px 15px;
+        border-radius: 50px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .status-active { background: #e7f0ff; color: #0d6efd; }
+    .status-completed { background: #e6f7ef; color: #198754; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kiosk-container">
+    <div class="qr-card">
+        <div class="mb-4">
+            <h2 class="fw-bold mb-1">{{ customer.first_name }} {{ customer.last_name }}</h2>
+            <p class="text-muted small">{{ customer.phone|default:customer.email }}</p>
+        </div>
+
+        <div id="qrcode"></div>
+
+        <div class="mt-4 pt-3 border-top">
+            <p class="text-muted small text-uppercase fw-bold mb-3">Tu Estado</p>
+            <div class="d-flex justify-content-center gap-2">
+                <div class="kiosk-badge status-active">
+                    <i class="fas fa-ticket-alt me-1"></i> {{ active_cards }} Activas
+                </div>
+                {% if completed_cards > 0 %}
+                <div class="kiosk-badge status-completed">
+                    <i class="fas fa-gift me-1"></i> {{ completed_cards }} Listos
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <small class="text-muted">Muestra este código al personal</small>
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <a href="{% url 'stamps:my_stamps' %}" class="btn btn-link text-decoration-none text-muted">
+            <i class="fas fa-th-large me-2"></i> Ver mis tarjetas
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        new QRCode(document.getElementById("qrcode"), {
+            text: "{{ stamp_url }}",
+            width: 250,
+            height: 250,
+            colorDark : "#1a1a1b",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    });
+</script>
+{% endblock %}
