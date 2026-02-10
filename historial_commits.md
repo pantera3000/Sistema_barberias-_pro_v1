@@ -4,6 +4,8 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| e5c3ed0 | 2026-02-09 20:50:00 | Mejora: dashboard visual con gráficos interactivos (Chart.js) |
+| cc5e95c | 2026-02-09 20:40:00 | Checkpoint: sistema de sellos optimizado |
 | 8b44b2b | 2026-02-09 16:15:00 | Corrección: script movido a bloque extra_js para carga del DOM |
 | adbe8de | 2026-02-09 16:15:00 | Corrección: sincronización de búsqueda y visibilidad en modal |
 | c010e74 | 2026-02-09 16:00:00 | Mejora: buscador AJAX más rápido y UX optimizada en modal |

@@ -100,6 +100,39 @@ def card_list(request):
 
     from django.utils import timezone
     today = timezone.now().date()
+    
+    # Agrupar tarjetas por cliente
+    customer_groups = {}
+    for card in cards:
+        customer_id = card.customer.id
+        if customer_id not in customer_groups:
+            customer_groups[customer_id] = {
+                'customer': card.customer,
+                'active_card': None,
+                'completed_cards': [],
+                'requested_count': 0,
+                'last_activity': card.last_stamp_at
+            }
+        
+        if card.is_completed:
+            customer_groups[customer_id]['completed_cards'].append(card)
+            if card.redemption_requested:
+                customer_groups[customer_id]['requested_count'] += 1
+        else:
+            # Asumimos que solo hay una activa por promoción (o tomamos la más reciente)
+            if not customer_groups[customer_id]['active_card'] or card.last_stamp_at > customer_groups[customer_id]['active_card'].last_stamp_at:
+                customer_groups[customer_id]['active_card'] = card
+        
+        if card.last_stamp_at > customer_groups[customer_id]['last_activity']:
+            customer_groups[customer_id]['last_activity'] = card.last_stamp_at
+
+    # Convertir a lista y ordenar: Primero los que tienen solicitudes, luego por actividad
+    grouped_list = sorted(
+        customer_groups.values(), 
+        key=lambda x: (x['requested_count'] > 0, x['last_activity']), 
+        reverse=True
+    )
+
     stats = {
         'total_active': cards.filter(is_completed=False).count(),
         'completed': cards.filter(is_completed=True, redemption_requested=False).count(),
@@ -108,27 +141,38 @@ def card_list(request):
     }
 
     return render(request, 'stamps/card_list.html', {
-        'cards': cards, 
+        'grouped_customers': grouped_list, 
         'title': 'Tarjetas de Clientes',
         'query': query,
         'stats': stats
     })
 
+    return redirect('stamps:card_list')
+
 @login_required
-def add_stamp_direct(request, pk):
-    """Agregar un sello directamente - Soporta creación de nueva tarjeta si la actual se llena"""
+def add_stamp_customer(request, customer_id):
+    """Agrega un sello a un cliente buscando su tarjeta activa o creando una"""
     if request.method == 'POST':
-        card = get_object_or_404(StampCard, pk=pk, organization=request.tenant, is_redeemed=False)
+        customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
+        active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
         
-        if card.is_completed:
-            # Si intentan poner sello a una completa, redirigimos a crear una nueva
-            return redirect('stamps:assign_stamps') # O podríamos automatizarlo aquí
-            
+        if not active_promo:
+            messages.error(request, "No hay promoción activa.")
+            return redirect('stamps:card_list')
+
         with transaction.atomic():
+            card, created = StampCard.objects.get_or_create(
+                customer=customer,
+                promotion=active_promo,
+                is_completed=False,
+                is_redeemed=False,
+                defaults={'current_stamps': 0}
+            )
+            
             card.current_stamps += 1
-            if card.current_stamps >= card.promotion.total_stamps_needed:
+            if card.current_stamps >= active_promo.total_stamps_needed:
                 card.is_completed = True
-                messages.success(request, f"¡Tarjeta completada para {card.customer.full_name}!")
+                messages.success(request, f"¡Tarjeta completada para {customer.full_name}!")
             
             card.save()
             StampTransaction.objects.create(
@@ -138,7 +182,7 @@ def add_stamp_direct(request, pk):
                 quantity=1,
                 performed_by=request.user
             )
-            messages.success(request, f"Sello añadido.")
+            messages.success(request, "Sello añadido correctamente.")
             
     return redirect('stamps:card_list')
 
