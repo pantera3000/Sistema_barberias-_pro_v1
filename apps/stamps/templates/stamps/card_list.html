@@ -201,6 +201,25 @@
     .list-group-item-action:hover {
         background-color: #f8f9fa;
 </style>
+<!-- Modal Historial de Sellos -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="historyModalLabel">Historial de Sellos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="historyModalBody">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -350,6 +369,32 @@
             });
         }
     }
+
+    // --- Global History Loader ---
+    window.loadHistory = function(customerId, customerName) {
+        document.getElementById('historyModalLabel').innerText = `Historial: ${customerName}`;
+        const body = document.getElementById('historyModalBody');
+        body.innerHTML = `
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        `;
+        
+        const myModal = new bootstrap.Modal(document.getElementById('historyModal'));
+        myModal.show();
+
+        fetch(`/app/stamps/customers/${customerId}/history/`)
+            .then(response => response.text())
+            .then(html => {
+                body.innerHTML = html;
+            })
+            .catch(err => {
+                body.innerHTML = '<div class="alert alert-danger">Error al cargar el historial.</div>';
+                console.error(err);
+            });
+    };
 });
 </script>
 {% endblock %}

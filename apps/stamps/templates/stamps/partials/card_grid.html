@@ -6,7 +6,12 @@
             <div class="card-header border-0 bg-white pt-4 px-4 pb-0">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="overflow-hidden">
-                        <h5 class="fw-bold mb-0 text-dark text-truncate">{{ group.customer.full_name }}</h5>
+                        <div class="d-flex align-items-center">
+                            <h5 class="fw-bold mb-0 text-dark text-truncate me-2">{{ group.customer.full_name }}</h5>
+                            <button type="button" class="btn btn-link p-0 text-muted" onclick="loadHistory('{{ group.customer.id }}', '{{ group.customer.full_name }}')" title="Ver historial">
+                                <i class="fas fa-history small"></i>
+                            </button>
+                        </div>
                         <small class="text-muted">{{ group.customer.phone|default:"Sin teléfono" }}</small>
                     </div>
                     {% if group.requested_count > 0 %}

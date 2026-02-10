@@ -166,6 +166,24 @@ def add_stamp_customer(request, customer_id):
             messages.error(request, "No hay promoción activa.")
             return redirect('stamps:card_list')
 
+        # --- Lógica Anti-Fraude (Time-Lock) ---
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        # Bloqueo de 2 horas por defecto (podría ser un setting del tenant)
+        lock_hours = 2
+        last_add = StampTransaction.objects.filter(
+            organization=request.tenant,
+            card__customer=customer,
+            action='ADD'
+        ).order_by('-created_at').first()
+
+        if last_add and (timezone.now() - last_add.created_at) < timedelta(hours=lock_hours):
+            wait_time = last_add.created_at + timedelta(hours=lock_hours) - timezone.now()
+            minutes_left = int(wait_time.total_seconds() / 60)
+            messages.warning(request, f"🛡️ Anti-Fraude: Espera {minutes_left} min para dar otro sello a este cliente.")
+            return redirect('stamps:card_list')
+
         with transaction.atomic():
             card, created = StampCard.objects.get_or_create(
                 customer=customer,
@@ -191,6 +209,20 @@ def add_stamp_customer(request, customer_id):
             messages.success(request, "Sello añadido correctamente.")
             
     return redirect('stamps:card_list')
+
+@login_required
+def customer_history(request, customer_id):
+    """Retorna el historial de transacciones de un cliente (para modal AJAX)"""
+    customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
+    transactions = StampTransaction.objects.filter(
+        organization=request.tenant,
+        card__customer=customer
+    ).select_related('card', 'card__promotion', 'performed_by').order_by('-created_at')[:20]
+
+    return render(request, 'stamps/partials/customer_history.html', {
+        'customer': customer,
+        'transactions': transactions
+    })
 
 # --- CLIENT VIEWS ---
 
