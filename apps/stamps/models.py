@@ -46,9 +46,7 @@ class StampCard(TenantAwareModel):
     class Meta:
         verbose_name = "Tarjeta de Sellos"
         verbose_name_plural = "Tarjetas de Sellos"
-        unique_together = ('customer', 'promotion', 'is_redeemed') # Un cliente puede tener varias si ya canjeó las anteriores? 
-        # Mejor permitir múltiples, pero filtrar la activa en la vista. Unique podría complicar si queremos historial.
-        # Quitaremos unique_together por ahora para simplificar historial.
+        # Quitamos unique_together para permitir acumulación de múltiples premios (tarjetas completadas no canjeadas)
 
     def __str__(self):
         return f"{self.customer} - {self.current_stamps}/{self.promotion.total_stamps_needed}"

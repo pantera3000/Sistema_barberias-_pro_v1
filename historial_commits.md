@@ -4,6 +4,7 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| df4fb8b | 2026-02-09 21:00:00 | Mejora: vista de tarjetas agrupada por cliente y acumulación |
 | e5c3ed0 | 2026-02-09 20:50:00 | Mejora: dashboard visual con gráficos interactivos (Chart.js) |
 | cc5e95c | 2026-02-09 20:40:00 | Checkpoint: sistema de sellos optimizado |
 | 8b44b2b | 2026-02-09 16:15:00 | Corrección: script movido a bloque extra_js para carga del DOM |
