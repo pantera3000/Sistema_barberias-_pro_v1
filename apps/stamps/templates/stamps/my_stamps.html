@@ -86,13 +86,14 @@
             <div class="card-body p-0">
                 <div class="p-4 text-center">
                     <h5 class="fw-bold mb-1">{{ card.promotion.name }}</h5>
-                    <p class="small text-muted mb-0">Premio: {{ card.promotion.reward_description }}</p>
+                    <p class="small text-muted mb-0">Premio: {{ card.promotion.reward.name|default:card.promotion.reward_description }}</p>
                 </div>
 
                 <div class="stamp-grid-client bg-light">
                     {% with ""|center:card.promotion.total_stamps_needed as range %}
                     {% for _ in range %}
-                        <div class="stamp-slot-client {% if forloop.counter <= card.current_stamps %}active{% endif %}">
+                        <div class="stamp-slot-client {% if forloop.counter <= card.current_stamps %}active{% endif %}"
+                             {% if forloop.counter <= card.current_stamps %}style="background: {{ card.promotion.primary_color }}; border-color: {{ card.promotion.primary_color }};"{% endif %}>
                             {% if forloop.counter <= card.current_stamps %}
                                 <i class="fas fa-stamp"></i>
                             {% else %}
@@ -129,7 +130,7 @@
                             <span class="small text-muted">{{ card.current_stamps }} de {{ card.promotion.total_stamps_needed }}</span>
                         </div>
                         <div class="progress" style="height: 12px; border-radius: 20px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%;"></div>
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%; background-color: {{ card.promotion.primary_color }}"></div>
                         </div>
                         <p class="text-center small text-muted mt-3 mb-0">
                             Te faltan <strong>{{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }}</strong> sellos para tu premio.

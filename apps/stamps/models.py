@@ -13,7 +13,9 @@ class StampPromotion(TenantAwareModel):
     name = models.CharField(max_length=150, verbose_name="Nombre de la Promoción")
     description = models.TextField(blank=True, verbose_name="Descripción")
     total_stamps_needed = models.PositiveIntegerField(default=10, verbose_name="Sellos necesarios")
-    reward_description = models.CharField(max_length=200, verbose_name="Recompensa (Ej: Corte Gratis)")
+    reward = models.ForeignKey('rewards.Reward', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Premio vinculado", help_text="Vincular con un premio del catálogo")
+    reward_description = models.CharField(max_length=200, verbose_name="Descripción de Recompensa (Fallback)", help_text="Se usa si no hay premio vinculado")
+    primary_color = models.CharField(max_length=20, default="#0d6efd", verbose_name="Color de la Tarjeta")
     is_active = models.BooleanField(default=True, verbose_name="Activa")
     
     start_date = models.DateField(null=True, blank=True, verbose_name="Fecha Inicio")

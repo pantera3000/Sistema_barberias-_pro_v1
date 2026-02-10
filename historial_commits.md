@@ -4,6 +4,7 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| 351624f | 2026-02-09 22:35:00 | Mejora: vigencia de tarjetas y reglas de 'Sello Doble' |
 | b6fd59e | 2026-02-09 22:15:00 | Mejora: modo kiosko (QR) y confirmación de sellos escaneados |
 | 1da0ca2 | 2026-02-09 22:00:00 | Mejora: paginación AJAX en el historial de clientes |
 | 3512060 | 2026-02-09 21:55:00 | Mejora: panel de configuración de negocio y bypass de seguridad |

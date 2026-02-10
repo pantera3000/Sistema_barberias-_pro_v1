@@ -16,7 +16,7 @@ def promotion_list(request):
         
     promotions = StampPromotion.objects.filter(organization=request.tenant)
     if request.method == 'POST':
-        form = StampPromotionForm(request.POST)
+        form = StampPromotionForm(request.POST, tenant=request.tenant)
         if form.is_valid():
             promo = form.save(commit=False)
             promo.organization = request.tenant
@@ -24,7 +24,7 @@ def promotion_list(request):
             messages.success(request, "Promoción creada.")
             return redirect('stamps:promotion_list')
     else:
-        form = StampPromotionForm()
+        form = StampPromotionForm(tenant=request.tenant)
         
     return render(request, 'stamps/promotion_list.html', {'promotions': promotions, 'form': form, 'title': 'Promociones de Sellos'})
 
@@ -32,13 +32,13 @@ def promotion_list(request):
 def promotion_edit(request, pk):
     promo = get_object_or_404(StampPromotion, pk=pk, organization=request.tenant)
     if request.method == 'POST':
-        form = StampPromotionForm(request.POST, instance=promo)
+        form = StampPromotionForm(request.POST, instance=promo, tenant=request.tenant)
         if form.is_valid():
             form.save()
             messages.success(request, "Promoción actualizada.")
             return redirect('stamps:promotion_list')
     else:
-        form = StampPromotionForm(instance=promo)
+        form = StampPromotionForm(instance=promo, tenant=request.tenant)
     return render(request, 'stamps/promotion_form.html', {'form': form, 'title': f'Editar {promo.name}'})
 
 @login_required
@@ -49,11 +49,11 @@ def assign_stamps(request):
         if form.is_valid():
             customer = form.cleaned_data['customer']
             quantity = form.cleaned_data['quantity']
+            active_promo = form.cleaned_data['promotion']
             
-            active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
             if not active_promo:
-                messages.error(request, "No hay ninguna promoción activa.")
-                return redirect('stamps:promotion_list')
+                messages.error(request, "Selecciona una promoción válida.")
+                return redirect('stamps:card_list')
             
             with transaction.atomic():
                 # Buscamos SOLO la tarjeta que aún no está llena
@@ -112,7 +112,7 @@ def card_list(request):
         if customer_id not in customer_groups:
             customer_groups[customer_id] = {
                 'customer': card.customer,
-                'active_card': None,
+                'active_cards': [],
                 'completed_cards': [],
                 'requested_count': 0,
                 'last_activity': card.last_stamp_at
@@ -123,8 +123,7 @@ def card_list(request):
             if card.redemption_requested:
                 customer_groups[customer_id]['requested_count'] += 1
         else:
-            if not customer_groups[customer_id]['active_card'] or card.last_stamp_at > customer_groups[customer_id]['active_card'].last_stamp_at:
-                customer_groups[customer_id]['active_card'] = card
+            customer_groups[customer_id]['active_cards'].append(card)
         
         if card.last_stamp_at > customer_groups[customer_id]['last_activity']:
             customer_groups[customer_id]['last_activity'] = card.last_stamp_at
@@ -143,11 +142,15 @@ def card_list(request):
         'stamps_today': StampTransaction.objects.filter(organization=request.tenant, created_at__date=today, action='ADD').count()
     }
 
+    from .forms import StampAssignmentForm
+    form = StampAssignmentForm(tenant=request.tenant)
+
     context = {
         'grouped_customers': grouped_list, 
         'title': 'Tarjetas de Clientes',
         'query': query,
-        'stats': stats
+        'stats': stats,
+        'form': form
     }
 
     # Soporte para búsqueda AJAX
@@ -163,10 +166,15 @@ def add_stamp_customer(request, customer_id):
     """Agrega un sello a un cliente buscando su tarjeta activa o creando una"""
     if request.method == 'POST':
         customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
-        active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
+        promo_id = request.POST.get('promotion_id')
+        
+        if promo_id:
+            active_promo = get_object_or_404(StampPromotion, id=promo_id, organization=request.tenant, is_active=True)
+        else:
+            active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
         
         if not active_promo:
-            messages.error(request, "No hay promoción activa.")
+            messages.error(request, "No hay promoción activa seleccionada.")
             return redirect('stamps:card_list')
 
         # --- Lógica Anti-Fraude (Time-Lock) ---
@@ -246,7 +254,12 @@ def add_stamp_customer(request, customer_id):
 
     # GET: Mostrar pantalla de confirmación (útil para escaneo QR)
     customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
-    active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
+    promo_id = request.GET.get('promotion_id')
+    
+    if promo_id:
+        active_promo = get_object_or_404(StampPromotion, id=promo_id, organization=request.tenant, is_active=True)
+    else:
+        active_promo = StampPromotion.objects.filter(organization=request.tenant, is_active=True).first()
     
     return render(request, 'stamps/confirm_add_stamp.html', {
         'customer': customer,

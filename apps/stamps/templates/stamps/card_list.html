@@ -118,7 +118,7 @@
                                 <!-- Resultados AJAX -->
                             </div>
                         </div>
-                        <input type="hidden" name="customer" id="selectedCustomerId" required>
+                        {{ form.customer }}
                     </div>
 
                     <div id="selectedCustomerInfo" class="alert alert-info d-none mb-4 d-flex align-items-center">
@@ -132,16 +132,21 @@
                         <button type="button" class="btn-close ms-auto" id="clearSelectedCustomer"></button>
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase text-muted">Elegir Promoción / Tarjeta</label>
+                        {{ form.promotion }}
+                    </div>
+
                     <div class="mb-4">
-                        <label class="form-label fw-bold">¿Cuántos sellos poner ahora?</label>
+                        <label class="form-label fw-bold small text-uppercase text-muted">¿Cuántos sellos poner ahora?</label>
                         <div class="input-group">
                             <button type="button" class="btn btn-outline-secondary" onclick="decrementStamp()">-</button>
-                            <input type="number" name="quantity" id="stampQuantity" class="form-control text-center fw-bold" value="1" min="1">
+                            {{ form.quantity }}
                             <button type="button" class="btn btn-outline-secondary" onclick="incrementStamp()">+</button>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm py-3" id="submitNewCard" disabled>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg shadow-sm py-3 fw-bold" id="submitNewCard" disabled>
                         <i class="fas fa-plus-circle me-2"></i> CREAR TARJETA
                     </button>
                 </form>
@@ -243,12 +248,12 @@
     const searchInput = document.getElementById('customerSearchInput');
     const resultsDiv = document.getElementById('customerResults');
     const selectedInfo = document.getElementById('selectedCustomerInfo');
-    const hiddenIdInput = document.getElementById('selectedCustomerId');
+    const hiddenIdInput = document.getElementById('id_customer');
     const submitBtn = document.getElementById('submitNewCard');
     const nameSpan = document.getElementById('selectedCustomerName');
     const phoneSmall = document.getElementById('selectedCustomerPhone');
     const clearBtn = document.getElementById('clearSelectedCustomer');
-    const quantityInput = document.getElementById('stampQuantity');
+    const quantityInput = document.getElementById('id_quantity');
 
     let debounceTimer;
 
@@ -333,6 +338,8 @@
         if (!searchInput.contains(event.target) && !resultsDiv.contains(event.target)) {
             resultsDiv.classList.add('d-none');
         }
+    });
+
     // --- AJAX Search Logic for Card List ---
     const realTimeSearchInput = document.getElementById('searchInput');
     const gridContainer = document.getElementById('gridContainer');
@@ -423,6 +430,5 @@
                 console.error(err);
             });
     };
-});
 </script>
 {% endblock %}

@@ -40,15 +40,21 @@
                 </div>
                 {% endif %}
 
-                <!-- Tarjeta en Progreso -->
-                {% if group.active_card %}
-                    <div class="text-center mb-3">
-                        <small class="text-muted d-block mb-2 text-truncate">{{ group.active_card.promotion.name }}</small>
+                <!-- Tarjetas en Progreso -->
+                {% if group.active_cards %}
+                    {% for card in group.active_cards %}
+                    <div class="text-center mb-4 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">{{ card.promotion.name }}</small>
+                            <span class="badge rounded-pill" style="background-color: {{ card.promotion.primary_color }}; width: 10px; height: 10px; padding: 0;"> </span>
+                        </div>
+                        
                         <div class="stamp-grid mb-3">
-                            {% with ""|center:group.active_card.promotion.total_stamps_needed as range %}
+                            {% with ""|center:card.promotion.total_stamps_needed as range %}
                             {% for _ in range %}
-                                <div class="stamp-slot {% if forloop.counter <= group.active_card.current_stamps %}active{% endif %}">
-                                    {% if forloop.counter <= group.active_card.current_stamps %}
+                                <div class="stamp-slot {% if forloop.counter <= card.current_stamps %}active{% endif %}" 
+                                     {% if forloop.counter <= card.current_stamps %}style="background-color: {{ card.promotion.primary_color }}; border-color: {{ card.promotion.primary_color }};"{% endif %}>
+                                    {% if forloop.counter <= card.current_stamps %}
                                         <i class="fas fa-stamp"></i>
                                     {% else %}
                                         <span class="slot-number">{{ forloop.counter }}</span>
@@ -57,28 +63,37 @@
                             {% endfor %}
                             {% endwith %}
                         </div>
+                        
                         <div class="progress mb-2" style="height: 6px; border-radius: 10px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {% widthratio group.active_card.current_stamps group.active_card.promotion.total_stamps_needed 100 %}%;"></div>
+                            <div class="progress-bar" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%; background-color: {{ card.promotion.primary_color }}"></div>
                         </div>
-                        <div class="d-flex justify-content-between small text-muted">
-                            <span>Avance: {{ group.active_card.current_stamps }}/{{ group.active_card.promotion.total_stamps_needed }}</span>
-                            <span>Faltan {{ group.active_card.promotion.total_stamps_needed|add:"-"|add:group.active_card.current_stamps }}</span>
+                        
+                        <div class="d-flex justify-content-between small text-muted mb-3" style="font-size: 0.75rem;">
+                            <span>{{ card.current_stamps }}/{{ card.promotion.total_stamps_needed }} sellos</span>
+                            <span class="fw-bold text-dark">Faltan {{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }}</span>
                         </div>
+
+                        <!-- Botón de Sello Rápido para ESTA tarjeta -->
+                        <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post" onsubmit="return confirm('¿Añadir 1 sello a {{ group.customer.full_name }} en {{ card.promotion.name }}?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="promotion_id" value="{{ card.promotion.id }}">
+                            <button type="submit" class="btn btn-sm w-100 py-2 btn-outline-primary fw-bold" style="border-color: {{ card.promotion.primary_color }}; color: {{ card.promotion.primary_color }};">
+                                <i class="fas fa-plus me-1"></i> MARCAR {{ card.promotion.name|upper }}
+                            </button>
+                        </form>
                     </div>
+                    {% endfor %}
                 {% else %}
                     <div class="text-center py-4 bg-light rounded-3 mb-3 border border-dashed">
                         <i class="fas fa-plus-circle text-muted opacity-50 mb-2 fa-lg"></i>
                         <p class="text-muted small mb-0">Sin tarjeta activa</p>
                     </div>
-                {% endif %}
-                
-                <!-- Botón de Sello Rápido -->
-                <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post" onsubmit="return confirm('¿Añadir 1 sello a {{ group.customer.full_name }}?');">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
-                        <i class="fas fa-plus me-2"></i> AGREGAR SELLO
+
+                    <!-- Botón para crear tarjeta si no tiene ninguna -->
+                    <button type="button" class="btn btn-primary w-100 py-2 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#newCardModal" onclick="selectCustomer({id: '{{ group.customer.id }}', full_name: '{{ group.customer.full_name }}', phone: '{{ group.customer.phone }}'})">
+                        <i class="fas fa-plus me-2"></i> INICIAR TARJETA
                     </button>
-                </form>
+                {% endif %}
             </div>
         </div>
     </div>

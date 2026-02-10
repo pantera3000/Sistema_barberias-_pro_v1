@@ -53,9 +53,18 @@
                     <tbody>
                         {% for promo in promotions %}
                         <tr>
-                            <td class="fw-bold">{{ promo.name }}</td>
+                            <td class="fw-bold">
+                                <span class="d-inline-block rounded-circle me-1" style="width: 12px; height: 12px; background-color: {{ promo.primary_color }}"></span>
+                                {{ promo.name }}
+                            </td>
                             <td class="text-center"><span class="badge bg-dark rounded-pill">{{ promo.total_stamps_needed }}</span></td>
-                            <td>{{ promo.reward_description }}</td>
+                            <td>
+                                {% if promo.reward %}
+                                    <span class="badge bg-info text-dark"><i class="fas fa-gift me-1"></i>{{ promo.reward.name }}</span>
+                                {% else %}
+                                    {{ promo.reward_description }}
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if promo.is_active %}
                                 <span class="badge bg-success">Activa</span>
