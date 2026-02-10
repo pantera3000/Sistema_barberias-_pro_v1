@@ -59,11 +59,11 @@
                     <div class="col-md-10">
                         <div class="input-group">
                             <span class="input-group-text bg-transparent border-0"><i class="fas fa-search text-muted"></i></span>
-                            <input type="text" name="q" class="form-control border-0 bg-transparent" placeholder="Buscar por cliente, teléfono o email..." value="{{ query }}">
+                            <input type="text" id="searchInput" name="q" class="form-control border-0 bg-transparent" placeholder="Buscar por cliente, teléfono o email..." value="{{ query }}">
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Buscar</button>
+                        <button type="submit" class="btn btn-primary w-100" id="searchBtn">Buscar</button>
                     </div>
                 </form>
             </div>
@@ -76,94 +76,8 @@
     </div>
 </div>
 
-<div class="row">
-    {% for group in grouped_customers %}
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card shadow-sm h-100 border-0 overflow-hidden">
-            <!-- Cabecera del Cliente -->
-            <div class="card-header border-0 bg-white pt-4 px-4 pb-0">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="overflow-hidden">
-                        <h5 class="fw-bold mb-0 text-dark text-truncate">{{ group.customer.full_name }}</h5>
-                        <small class="text-muted">{{ group.customer.phone|default:"Sin teléfono" }}</small>
-                    </div>
-                    {% if group.requested_count > 0 %}
-                    <span class="badge bg-warning text-dark border shadow-sm animate-pulse flex-shrink-0 ms-2">
-                        <i class="fas fa-bell me-1"></i> SOLICITADO
-                    </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Cuerpo - Tarjeta Activa y Resumen -->
-            <div class="card-body px-4">
-                <!-- Contador de Premios Listos -->
-                {% if group.completed_cards %}
-                <div class="alert alert-success d-flex justify-content-between align-items-center py-2 px-3 mb-3 border-0 shadow-sm" style="background-color: #d1e7dd; color: #0a3622;">
-                    <div class="small">
-                        <i class="fas fa-gift me-2"></i>
-                        <span class="fw-bold">{{ group.completed_cards|length }}</span> Premio{{ group.completed_cards|length|pluralize }} listo{{ group.completed_cards|length|pluralize }}
-                    </div>
-                    <form action="{% url 'stamps:redeem_card' group.completed_cards.0.pk %}" method="post" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-success shadow-sm" onclick="return confirm('¿Confirmar entrega de premio?');">
-                            Canjear
-                        </button>
-                    </form>
-                </div>
-                {% endif %}
-
-                <!-- Tarjeta en Progreso -->
-                {% if group.active_card %}
-                    <div class="text-center mb-3">
-                        <small class="text-muted d-block mb-2 text-truncate">{{ group.active_card.promotion.name }}</small>
-                        <div class="stamp-grid mb-3">
-                            {% with ""|center:group.active_card.promotion.total_stamps_needed as range %}
-                            {% for _ in range %}
-                                <div class="stamp-slot {% if forloop.counter <= group.active_card.current_stamps %}active{% endif %}">
-                                    {% if forloop.counter <= group.active_card.current_stamps %}
-                                        <i class="fas fa-stamp"></i>
-                                    {% else %}
-                                        <span class="slot-number">{{ forloop.counter }}</span>
-                                    {% endif %}
-                                </div>
-                            {% endfor %}
-                            {% endwith %}
-                        </div>
-                        <div class="progress mb-2" style="height: 6px; border-radius: 10px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: {% widthratio group.active_card.current_stamps group.active_card.promotion.total_stamps_needed 100 %}%;"></div>
-                        </div>
-                        <div class="d-flex justify-content-between small text-muted">
-                            <span>Avance: {{ group.active_card.current_stamps }}/{{ group.active_card.promotion.total_stamps_needed }}</span>
-                            <span>Faltan {{ group.active_card.promotion.total_stamps_needed|add:"-"|add:group.active_card.current_stamps }}</span>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="text-center py-4 bg-light rounded-3 mb-3 border border-dashed">
-                        <i class="fas fa-plus-circle text-muted opacity-50 mb-2 fa-lg"></i>
-                        <p class="text-muted small mb-0">Sin tarjeta activa</p>
-                    </div>
-                {% endif %}
-                
-                <!-- Botón de Sello Rápido -->
-                <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
-                        <i class="fas fa-plus me-2"></i> AGREGAR SELLO
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-    {% empty %}
-    <div class="col-12 text-center py-5">
-        <div class="text-muted">
-            <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
-            <p>No se encontraron clientes con tarjetas.</p>
-            <a href="{% url 'stamps:card_list' %}" class="btn btn-link">Ver todos</a>
-        </div>
-    </div>
-    {% endfor %}
+<div id="gridContainer">
+    {% include 'stamps/partials/card_grid.html' %}
 </div>
 
 <!-- Modal Nueva Tarjeta -->
@@ -384,6 +298,58 @@
         if (!searchInput.contains(event.target) && !resultsDiv.contains(event.target)) {
             resultsDiv.classList.add('d-none');
         }
-    });
+    // --- AJAX Search Logic for Card List ---
+    const realTimeSearchInput = document.getElementById('searchInput');
+    const gridContainer = document.getElementById('gridContainer');
+    const searchFormBtn = document.getElementById('searchBtn');
+    let searchTimeout = null;
+
+    if (realTimeSearchInput) {
+        function performAjaxSearch() {
+            const query = realTimeSearchInput.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('q', query);
+            url.searchParams.set('ajax', '1');
+
+            gridContainer.style.opacity = '0.5';
+            
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                gridContainer.innerHTML = html;
+                gridContainer.style.opacity = '1';
+                
+                // Actualizar la URL sin recargar la página
+                const pushUrl = new URL(window.location.href);
+                if (query) {
+                    pushUrl.searchParams.set('q', query);
+                } else {
+                    pushUrl.searchParams.delete('q');
+                }
+                window.history.pushState({ path: pushUrl.href }, '', pushUrl.href);
+            })
+            .catch(error => {
+                console.error('Error en búsqueda AJAX:', error);
+                gridContainer.style.opacity = '1';
+            });
+        }
+
+        realTimeSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(performAjaxSearch, 300);
+        });
+
+        if (searchFormBtn) {
+            searchFormBtn.closest('form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                performAjaxSearch();
+            });
+        }
+    }
+});
 </script>
 {% endblock %}

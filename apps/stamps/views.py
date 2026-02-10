@@ -140,12 +140,18 @@ def card_list(request):
         'stamps_today': StampTransaction.objects.filter(organization=request.tenant, created_at__date=today, action='ADD').count()
     }
 
-    return render(request, 'stamps/card_list.html', {
+    context = {
         'grouped_customers': grouped_list, 
         'title': 'Tarjetas de Clientes',
         'query': query,
         'stats': stats
-    })
+    }
+
+    # Soporte para búsqueda AJAX
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('ajax'):
+        return render(request, 'stamps/partials/card_grid.html', context)
+
+    return render(request, 'stamps/card_list.html', context)
 
     return redirect('stamps:card_list')
 
