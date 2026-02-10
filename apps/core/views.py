@@ -112,3 +112,29 @@ def dashboard_stats_api(request):
         'stamp_activity': list(stamp_activity),
         'promo_stats': list(promo_stats)
     })
+from django.contrib import messages
+from .forms import OrganizationSettingsForm
+
+@login_required
+def tenant_settings(request):
+    """Configuración general del negocio (solo para dueños)"""
+    tenant = getattr(request, 'tenant', None) or request.user.organization
+    
+    if not request.user.is_owner and not request.user.is_superuser:
+        messages.error(request, "No tienes permiso para acceder a la configuración.")
+        return redirect('core:dashboard')
+
+    if request.method == 'POST':
+        form = OrganizationSettingsForm(request.POST, request.FILES, instance=tenant)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Configuración actualizada correctamente.")
+            return redirect('core:tenant_settings')
+    else:
+        form = OrganizationSettingsForm(instance=tenant)
+
+    return render(request, 'core/settings.html', {
+        'form': form,
+        'title': 'Configuración del Negocio',
+        'tenant': tenant
+    })

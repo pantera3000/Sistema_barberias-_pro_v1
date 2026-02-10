@@ -36,6 +36,9 @@ class Organization(models.Model):
     timezone = models.CharField(max_length=50, default='America/Lima', verbose_name="Zona Horaria")
     currency = models.CharField(max_length=3, default='PEN', verbose_name="Moneda")
     
+    # Configuración de Seguridad
+    stamp_lock_hours = models.PositiveIntegerField(default=2, verbose_name="Horas de bloqueo entre sellos")
+    
     # Estado
     is_active = models.BooleanField(default=True, verbose_name="Activo")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creado el")

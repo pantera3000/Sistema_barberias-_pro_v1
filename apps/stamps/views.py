@@ -170,19 +170,24 @@ def add_stamp_customer(request, customer_id):
         from datetime import timedelta
         from django.utils import timezone
         
-        # Bloqueo de 2 horas por defecto (podría ser un setting del tenant)
-        lock_hours = 2
-        last_add = StampTransaction.objects.filter(
-            organization=request.tenant,
-            card__customer=customer,
-            action='ADD'
-        ).order_by('-created_at').first()
+        # Obtenemos la configuración del tenant o usamos 2 por defecto
+        lock_hours = getattr(request.tenant, 'stamp_lock_hours', 2)
+        
+        # BYPASS: El dueño y el superadmin NO están sujetos al bloqueo de tiempo
+        is_privileged = request.user.is_owner or request.user.is_superuser
+        
+        if not is_privileged:
+            last_add = StampTransaction.objects.filter(
+                organization=request.tenant,
+                card__customer=customer,
+                action='ADD'
+            ).order_by('-created_at').first()
 
-        if last_add and (timezone.now() - last_add.created_at) < timedelta(hours=lock_hours):
-            wait_time = last_add.created_at + timedelta(hours=lock_hours) - timezone.now()
-            minutes_left = int(wait_time.total_seconds() / 60)
-            messages.warning(request, f"🛡️ Anti-Fraude: Espera {minutes_left} min para dar otro sello a este cliente.")
-            return redirect('stamps:card_list')
+            if last_add and (timezone.now() - last_add.created_at) < timedelta(hours=lock_hours):
+                wait_time = last_add.created_at + timedelta(hours=lock_hours) - timezone.now()
+                minutes_left = int(wait_time.total_seconds() / 60)
+                messages.warning(request, f"🛡️ Anti-Fraude: Espera {minutes_left} min para dar otro sello a este cliente.")
+                return redirect('stamps:card_list')
 
         with transaction.atomic():
             card, created = StampCard.objects.get_or_create(

@@ -4,6 +4,7 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| 2df87da | 2026-02-09 21:50:00 | Mejora: botón de 'Deshacer' (Undo) en historial de sellos |
 | 844258c | 2026-02-09 21:40:00 | Mejora: auditoría de sellos y protección anti-fraude (Time-Lock) |
 | 04f3ea4 | 2026-02-09 21:25:00 | Mejora: buscador AJAX real-time con debounce en lista de tarjetas |
 | 1b332ca | 2026-02-09 21:05:00 | Fix: eliminada restricción UNIQUE para acumulación infinita |

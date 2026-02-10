@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary btn-sm me-3 border-0">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="h3 mb-0 fw-bold">{{ title }}</h1>
+            </div>
+
+            <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 20px;">
+                <div class="card-body p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row g-4">
+                            <!-- Información General -->
+                            <div class="col-12">
+                                <h5 class="fw-bold text-primary mb-3">Información del Negocio</h5>
+                                <hr class="opacity-10 mt-0">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Nombre del Negocio</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">{{ form.name.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Color Primario (Marca)</label>
+                                {{ form.primary_color }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Zona Horaria</label>
+                                {{ form.timezone }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Moneda</label>
+                                {{ form.currency }}
+                            </div>
+
+                            <!-- Seguridad y Sellos -->
+                            <div class="col-12 mt-5">
+                                <h5 class="fw-bold text-primary mb-3">Seguridad y Control Anti-Fraude</h5>
+                                <hr class="opacity-10 mt-0">
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-circle p-2 me-3">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">Bloqueo de Tiempo (Time-Lock)</h6>
+                                            <small class="text-muted">Evita que se marquen sellos fraudulentos en poco tiempo.</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row align-items-center">
+                                        <div class="col-md-4">
+                                            <label class="form-label fw-bold small text-muted text-uppercase">Horas de espera</label>
+                                            {{ form.stamp_lock_hours }}
+                                        </div>
+                                        <div class="col-md-8">
+                                            <div class="alert alert-info py-2 px-3 mb-0 border-0 small">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                El dueño del negocio y superadministradores **pueden saltar** esta restricción. Solo aplica para el personal.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 mt-4 text-end">
+                                <hr class="opacity-10">
+                                <button type="submit" class="btn btn-primary px-5 py-2 fw-bold shadow-sm">
+                                    <i class="fas fa-save me-2"></i> Guardar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control, .form-select {
+        border-radius: 10px;
+        padding: 10px 15px;
+        border: 1px solid #e2e8f0;
+    }
+    .form-control:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    input[type="color"] {
+        height: 48px;
+        width: 100%;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
