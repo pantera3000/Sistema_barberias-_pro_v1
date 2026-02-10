@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.db import models, transaction
 from .models import StampPromotion, StampCard, StampTransaction
 from .forms import StampPromotionForm, StampAssignmentForm
+from django.core.paginator import Paginator
 from apps.customers.models import Customer
 
 @login_required
@@ -217,16 +218,21 @@ def add_stamp_customer(request, customer_id):
 
 @login_required
 def customer_history(request, customer_id):
-    """Retorna el historial de transacciones de un cliente (para modal AJAX)"""
+    """Retorna el historial de transacciones de un cliente (con paginación AJAX)"""
     customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
-    transactions = StampTransaction.objects.filter(
+    queryset = StampTransaction.objects.filter(
         organization=request.tenant,
         card__customer=customer
-    ).select_related('card', 'card__promotion', 'performed_by').order_by('-created_at')[:20]
+    ).select_related('card', 'card__promotion', 'performed_by').order_by('-created_at')
+
+    paginator = Paginator(queryset, 15) # 15 transacciones por página
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'stamps/partials/customer_history.html', {
         'customer': customer,
-        'transactions': transactions
+        'page_obj': page_obj,
+        'transactions': page_obj.object_list
     })
 
 # --- CLIENT VIEWS ---

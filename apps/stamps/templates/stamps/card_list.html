@@ -371,9 +371,13 @@
     }
 
     // --- Global History Loader ---
-    window.loadHistory = function(customerId, customerName) {
+    let historyModalInstance = null;
+
+    window.loadHistory = function(customerId, customerName, page = 1) {
         document.getElementById('historyModalLabel').innerText = `Historial: ${customerName}`;
         const body = document.getElementById('historyModalBody');
+        
+        // Mostrar spinner mientras carga
         body.innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
@@ -382,10 +386,18 @@
             </div>
         `;
         
-        const myModal = new bootstrap.Modal(document.getElementById('historyModal'));
-        myModal.show();
+        // Manejar el modal
+        const modalEl = document.getElementById('historyModal');
+        if (!historyModalInstance) {
+            historyModalInstance = new bootstrap.Modal(modalEl);
+        }
+        
+        // Solo mostrar si no está abierto
+        if (!modalEl.classList.contains('show')) {
+            historyModalInstance.show();
+        }
 
-        fetch(`/app/stamps/customers/${customerId}/history/`)
+        fetch(`/app/stamps/customers/${customerId}/history/?page=${page}`)
             .then(response => response.text())
             .then(html => {
                 body.innerHTML = html;
