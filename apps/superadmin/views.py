@@ -117,17 +117,20 @@ def organization_features(request, pk):
         messages.success(request, "Configuración actualizada correctamente.")
         return redirect('superadmin:organization_features', pk=pk)
         
-    # Agrupar features por categoría (simple lógica de string)
-    features = org.feature_flags.all()
-    modules = [f for f in features if '.' not in f.feature_key]
+    # Agrupar features por módulo para el template
+    features = org.feature_flags.all().order_by('feature_key')
+    modules_list = [f for f in features if '.' not in f.feature_key]
     sub_features = [f for f in features if '.' in f.feature_key]
+    
+    # Añadir lista de sub-features a cada objeto módulo (en memoria)
+    for m in modules_list:
+        m.subs = [s for s in sub_features if s.feature_key.startswith(f"{m.feature_key}.")]
     
     limits = org.usage_limits.all()
     
     context = {
         'org': org,
-        'modules': modules,
-        'sub_features': sub_features,
+        'modules': modules_list,
         'limits': limits,
         'title': f'Configurar: {org.name}'
     }

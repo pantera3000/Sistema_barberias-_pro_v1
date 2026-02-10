@@ -1,6 +1,7 @@
-
 from .models import Domain, set_current_tenant
 from django.utils.deprecation import MiddlewareMixin
+from django.shortcuts import redirect
+from django.contrib import messages
 
 class TenantMiddleware(MiddlewareMixin):
     def process_request(self, request):
@@ -17,3 +18,30 @@ class TenantMiddleware(MiddlewareMixin):
 
         request.tenant = tenant
         set_current_tenant(tenant)
+
+class FeatureRestrictionMiddleware(MiddlewareMixin):
+    def process_request(self, request):
+        if not request.user.is_authenticated or request.user.is_superuser:
+            return None
+
+        # Mapa de rutas a llaves de feature
+        feature_map = {
+            '/app/loyalty/': 'points',
+            '/app/stamps/': 'stamps',
+            '/app/rewards/': 'rewards',
+            '/app/reports/': 'reports',
+            '/app/campaigns/': 'campaigns',
+            '/app/services/': 'services',
+            '/app/appointments/': 'appointments',
+            '/app/audit/': 'audit',
+        }
+
+        path = request.path
+        for prefix, feature_key in feature_map.items():
+            if path.startswith(prefix):
+                # Usar el método que creamos en el modelo User
+                if not request.user.has_feature(feature_key):
+                    messages.error(request, f"El módulo '{feature_key.capitalize()}' no está incluido en tu plan actual.")
+                    return redirect('core:dashboard')
+
+        return None

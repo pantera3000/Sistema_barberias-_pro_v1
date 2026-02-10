@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 20px;">
+            <div class="card-header bg-white p-4 border-0">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                        <i class="fas fa-robot text-primary fa-lg"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold">Notificaciones Automáticas</h4>
+                        <p class="text-muted small mb-0">Automatiza el engagement de tus clientes con mensajes estratégicos.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="card-body p-4 pt-0">
+                    
+                    <!-- Sección API WhatsApp -->
+                    <div class="p-3 mb-4 rounded-4 bg-light">
+                        <h6 class="fw-bold mb-3"><i class="fab fa-whatsapp me-2"></i> Conexión WhatsApp (API Local)</h6>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label small text-uppercase text-muted fw-bold">{{ form.whatsapp_api_url.label }}</label>
+                                {{ form.whatsapp_api_url }}
+                                <div class="form-text small">Proporcionado por tu proveedor de API local.</div>
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label small text-uppercase text-muted fw-bold">{{ form.whatsapp_token.label }}</label>
+                                {{ form.whatsapp_token }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección Email -->
+                    <div class="p-3 mb-4 rounded-4 border">
+                        <div class="form-check form-switch">
+                            {{ form.email_enabled }}
+                            <label class="form-check-label fw-bold" for="{{ form.email_enabled.id_for_label }}">Habilitar Notificaciones por Email</label>
+                        </div>
+                        <p class="small text-muted mb-0 ms-4 mt-1">Se enviará un correo usando la configuración SMTP glboal del sistema.</p>
+                    </div>
+
+                    <!-- Sección Plantillas -->
+                    <h6 class="fw-bold mb-3 d-flex align-items-center">
+                        <i class="fas fa-comment-dots text-primary me-2"></i> 
+                        Configurar Mensajes
+                    </h6>
+                    
+                    <div class="alert alert-info py-2 small mb-4">
+                        <i class="fas fa-info-circle me-1"></i> Puedes usar variables: 
+                        <code>{nombre}</code>, <code>{negocio}</code>, <code>{premio}</code>, <code>{porcentaje}</code>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">{{ form.template_one_left.label }}</label>
+                        {{ form.template_one_left }}
+                        <div class="form-text small">Se envía cuando al cliente le falta solo un sello para completar.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">{{ form.template_completed.label }}</label>
+                        {{ form.template_completed }}
+                        <div class="form-text small">Se envía al momento de completar la tarjeta.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted text-uppercase">{{ form.template_expiring.label }}</label>
+                        {{ form.template_expiring }}
+                        <div class="form-text small">Recordatorio enviado 7 días antes de que la tarjeta expire.</div>
+                    </div>
+
+                    <hr class="opacity-10 my-4">
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm">
+                        <i class="fas fa-save me-2"></i> Guardar Configuración
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -24,19 +24,36 @@
 
             <!-- Cuerpo - Tarjeta Activa y Resumen -->
             <div class="card-body px-4">
-                <!-- Contador de Premios Listos -->
+                <!-- Premios Listos -->
                 {% if group.completed_cards %}
-                <div class="alert alert-success d-flex justify-content-between align-items-center py-2 px-3 mb-3 border-0 shadow-sm" style="background-color: #d1e7dd; color: #0a3622;">
-                    <div class="small">
-                        <i class="fas fa-gift me-2"></i>
-                        <span class="fw-bold">{{ group.completed_cards|length }}</span> Premio{{ group.completed_cards|length|pluralize }} listo{{ group.completed_cards|length|pluralize }}
+                <div class="mb-4">
+                    <label class="small fw-bold text-success text-uppercase mb-2" style="font-size: 0.7rem;">
+                        <i class="fas fa-gift me-1"></i> Premios por entregar ({{ group.completed_cards|length }})
+                    </label>
+                    {% for card in group.completed_cards %}
+                    <div class="alert d-flex justify-content-between align-items-center py-2 px-3 mb-2 border-0 shadow-sm" 
+                         style="background-color: {{ card.promotion.primary_color }}15; color: #0a3622; border-left: 4px solid {{ card.promotion.primary_color }} !important;">
+                        <div class="small overflow-hidden me-2">
+                            <span class="fw-bold d-block text-truncate" style="font-size: 0.8rem;">
+                                {{ card.promotion.name }}
+                                {% if card.redemption_requested %}
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem; vertical-align: middle;">SOLICITADO</span>
+                                {% endif %}
+                            </span>
+                            <small class="text-muted d-block text-truncate" style="font-size: 0.7rem;">
+                                {{ card.promotion.reward.name|default:card.promotion.reward_description }}
+                            </small>
+                        </div>
+                        <form action="{% url 'stamps:redeem_card' card.pk %}" method="post" class="d-inline flex-shrink-0">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm text-white fw-bold shadow-sm" 
+                                    onclick="return confirm('¿Confirmar entrega de: {{ card.promotion.name }}?');"
+                                    style="background-color: {{ card.promotion.primary_color }}; border: none; font-size: 0.7rem; padding: 4px 8px;">
+                                CANJEAR
+                            </button>
+                        </form>
                     </div>
-                    <form action="{% url 'stamps:redeem_card' group.completed_cards.0.pk %}" method="post" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-success shadow-sm" onclick="return confirm('¿Confirmar entrega de premio?');">
-                            Canjear
-                        </button>
-                    </form>
+                    {% endfor %}
                 </div>
                 {% endif %}
 

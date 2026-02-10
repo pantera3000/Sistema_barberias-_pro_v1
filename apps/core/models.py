@@ -36,6 +36,10 @@ class Organization(models.Model):
     timezone = models.CharField(max_length=50, default='America/Lima', verbose_name="Zona Horaria")
     currency = models.CharField(max_length=3, default='PEN', verbose_name="Moneda")
     
+    # Horarios de Atención (para Auditoría)
+    opening_time = models.TimeField(default='09:00:00', verbose_name="Hora de Apertura")
+    closing_time = models.TimeField(default='21:00:00', verbose_name="Hora de Cierre")
+    
     # Configuración de Seguridad
     stamp_lock_hours = models.PositiveIntegerField(default=2, verbose_name="Horas de bloqueo entre sellos")
     stamps_expiration_months = models.PositiveIntegerField(default=0, verbose_name="Meses de vigencia de tarjetas (0 = sin límite)")
@@ -116,6 +120,7 @@ class FeatureFlag(models.Model):
         ('customers.export_data', 'Exportar Datos Clientes'),
         ('reports.export_pdf', 'Exportar Reportes PDF'),
         ('campaigns.whatsapp_manual', 'Campañas WhatsApp (Manual)'),
+        ('campaigns.auto_notifications', 'Notificaciones Automáticas (Engagement)'),
         ('campaigns.pabbly', 'Webhook Pabbly Connect'),
         ('appointments.online_booking', 'Reservas Online'),
         ('gamification.referrals', 'Programa de Referidos'),

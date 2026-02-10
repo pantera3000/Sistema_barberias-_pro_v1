@@ -1,0 +1,573 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wa-float {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 60px;
+        height: 60px;
+        background-color: #25d366;
+        color: #fff;
+        border-radius: 50px;
+        text-align: center;
+        font-size: 30px;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .wa-float:hover {
+        transform: scale(1.1);
+        color: #fff;
+    }
+    .tag-badge {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+        border-radius: 50px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .adn-card {
+        border-right: 4px solid var(--bs-primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-4">
+    <!-- Header Navegación -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'customers:customer_list' %}">Clientes</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ customer.full_name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Columna Izquierda: Perfil y Stats -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center py-5">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex justify-content-center align-items-center mb-3 mb-3 border border-primary border-opacity-25" style="width: 100px; height: 100px;">
+                        <i class="fas fa-user fa-3x"></i>
+                    </div>
+                    <h3 class="fw-bold mb-1">{{ customer.full_name }}</h3>
+                    <p class="text-muted small mb-2">ID: #{{ customer.id }} | Socio desde {{ customer.created_at|date:"M Y" }}</p>
+                    
+                    <div class="d-flex flex-wrap justify-content-center gap-1 mb-3">
+                        {% for tag in customer.tags.all %}
+                            <span class="badge tag-badge" style="background-color: {{ tag.color }}20; color: {{ tag.color }}; border: 1px solid {{ tag.color }}40;">
+                                {{ tag.name }}
+                            </span>
+                        {% empty %}
+                            <span class="text-muted small italic">Sin etiquetas</span>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if rewards_ready > 0 %}
+                    <div class="alert alert-warning py-2 small d-flex align-items-center justify-content-center mb-3 border-0 shadow-sm">
+                        <i class="fas fa-trophy me-2 fa-lg text-warning"></i>
+                        <span class="fw-bold">TIENE {{ rewards_ready }} PREMIO{{ rewards_ready|pluralize|upper }} LISTO{{ rewards_ready|pluralize|upper }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{% url 'customers:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal">
+                            <i class="fas fa-trash me-1"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Confirmar Eliminación -->
+            <div class="modal fade" id="deleteCustomerModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header border-0 pb-0">
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center pb-4">
+                            <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-inline-flex justify-content-center align-items-center mb-4" style="width: 80px; height: 80px;">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <h4 class="fw-bold mb-2">¿Eliminar cliente?</h4>
+                            <p class="text-muted mb-0">Esta acción no se puede deshacer. Se eliminarán todos los puntos y tarjetas de <strong>{{ customer.full_name }}</strong>.</p>
+                        </div>
+                        <div class="modal-footer border-0 p-3 pt-0 d-flex gap-2">
+                            <button type="button" class="btn btn-light flex-grow-1 py-2 fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                            <form action="{% url 'customers:customer_delete' customer.pk %}" method="post" class="flex-grow-1">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">Sí, Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ADN del Cliente (Inteligencia) -->
+            <div class="card shadow-sm border-0 mb-4 adn-card">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-fingerprint me-2 text-primary"></i> ADN del Cliente</h6>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="d-flex flex-column gap-3">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-light p-2 me-3">
+                                <i class="fas fa-calendar-check text-primary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">FRECUENCIA</small>
+                                <span class="fw-bold small">{{ adn.frecuencia }}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-light p-2 me-3">
+                                <i class="fas fa-heart text-danger"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">SERVICIO FAVORITO</small>
+                                <span class="fw-bold small">{{ adn.servicio_favorito }}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-light p-2 me-3">
+                                <i class="fas fa-clock text-info"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">ÚLTIMA VISITA</small>
+                                <span class="{{ adn.status_ultima_visita }} small">
+                                    {% if adn.dias_ultima_visita == 0 %}Hoy{% else %}Hace {{ adn.dias_ultima_visita }} días{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Rápidos -->
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="card shadow-sm border-0 bg-success bg-opacity-10 text-success text-center p-3">
+                        <h2 class="fw-bold mb-0">{{ customer.total_points|default:0 }}</h2>
+                        <small class="text-uppercase fw-bold" style="font-size: 0.7rem;">Puntos</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card shadow-sm border-0 bg-warning bg-opacity-10 text-warning text-center p-3">
+                        <h2 class="fw-bold mb-0">{{ stamp_cards.count }}</h2>
+                        <small class="text-uppercase fw-bold" style="font-size: 0.7rem;">Tarjetas</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de Contacto -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <h6 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2"></i> Datos de Contacto</h6>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <span class="text-muted small"><i class="fas fa-envelope me-2"></i> Email</span>
+                            <span class="fw-bold small">{{ customer.email|default:"No registrado" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <span class="text-muted small"><i class="fas fa-phone me-2"></i> Teléfono</span>
+                            <div class="d-flex align-items-center">
+                                <span class="fw-bold small me-2">{{ customer.phone|default:"No registrado" }}</span>
+                                {% if customer.phone %}
+                                <a href="#" class="btn btn-sm btn-success p-1 px-2" data-bs-toggle="modal" data-bs-target="#waModal" title="Enviar WhatsApp">
+                                    <i class="fab fa-whatsapp"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <span class="text-muted small"><i class="fas fa-birthday-cake me-2"></i> Cumpleaños</span>
+                            <div class="text-end">
+                                <span class="fw-bold small d-block">{{ customer.birthday_display }}</span>
+                                {% if birthday_info.days_to is not None %}
+                                    {% if birthday_info.is_today %}
+                                        <span class="badge bg-warning text-dark border border-warning border-opacity-50 pulse-animation">
+                                            ¡Hoy cumple años! 🎉
+                                        </span>
+                                        <a href="#" class="btn btn-sm btn-outline-warning d-block mt-1 fw-bold wa-bday-btn" data-bs-toggle="modal" data-bs-target="#waModal" data-template-index="3">
+                                            <i class="fab fa-whatsapp me-1"></i> Felicitar
+                                        </a>
+                                    {% elif birthday_info.days_to <= 7 %}
+                                        <span class="badge bg-info-subtle text-info border border-info border-opacity-10 small">
+                                            {{ birthday_info.message }}
+                                        </span>
+                                    {% else %}
+                                        <small class="text-muted" style="font-size: 0.65rem;">{{ birthday_info.message }}</small>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            {% if customer.notes %}
+            <div class="card shadow-sm border-0 mt-4 bg-light">
+                <div class="card-body">
+                    <h6 class="fw-bold small mb-2 text-muted">NOTAS INTERNAS:</h6>
+                    <p class="mb-0 small italic">{{ customer.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Columna Derecha: Tarjetas y Movimientos -->
+        <div class="col-lg-8">
+            <!-- Pestañas -->
+            <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm d-inline-flex" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="pills-stamps-tab" data-bs-toggle="pill" data-bs-target="#pills-stamps" type="button" role="tab" aria-controls="pills-stamps" aria-selected="true">
+                        <i class="fas fa-ticket-alt me-2"></i> Tarjetas de Sellos
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pills-history-tab" data-bs-toggle="pill" data-bs-target="#pills-history" type="button" role="tab" aria-controls="pills-history" aria-selected="false">
+                        <i class="fas fa-history me-2"></i> Historial de Puntos
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+                <!-- Tab: Tarjetas de Sellos -->
+                <div class="tab-pane fade show active" id="pills-stamps" role="tabpanel" aria-labelledby="pills-stamps-tab">
+                    <div class="row row-cols-1 row-cols-md-2 g-4">
+                        {% for card in stamp_cards %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm border-0 border-top border-4 {% if card.is_completed %}border-success{% elif card.is_expired %}border-danger{% else %}border-primary{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-truncate" style="max-width: 150px;">{{ card.promotion.name }}</h6>
+                                            <small class="text-muted">Inicio: {{ card.created_at|date:"d/m/Y" }}</small>
+                                        </div>
+                                        {% if card.is_completed and not card.is_redeemed %}
+                                            <span class="badge bg-warning text-dark border border-warning border-opacity-50 pulse-animation">
+                                                <i class="fas fa-gift me-1"></i> ¡Canje Disponible!
+                                            </span>
+                                        {% elif card.is_completed %}
+                                            <span class="badge bg-success">Completada</span>
+                                        {% elif card.is_expired %}
+                                            <span class="badge bg-danger">Vencida</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">En uso</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="d-flex flex-wrap gap-2 mb-3">
+                                        {% with ''|center:card.promotion.total_stamps_needed as range %}
+                                        {% for _ in range %}
+                                            <div class="rounded-circle border d-flex align-items-center justify-content-center {% if forloop.counter <= card.current_stamps %}bg-warning border-warning text-white{% else %}bg-light text-muted opacity-25{% endif %}" style="width: 32px; height: 32px;">
+                                                <i class="fas fa-stamp small"></i>
+                                            </div>
+                                        {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                    
+                                    {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 as progress %}
+                                    <div class="progress mb-2" style="height: 6px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ progress }}%" aria-valuenow="{{ card.current_stamps }}" aria-valuemin="0" aria-valuemax="{{ card.promotion.total_stamps_needed }}"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between small text-muted">
+                                        <span>{{ card.current_stamps }} de {{ card.promotion.total_stamps_needed }} sellos</span>
+                                        <span>{{ progress }}%</span>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-white border-0 py-3">
+                                    {% if card.is_completed and not card.is_redeemed %}
+                                    <button type="button" class="btn btn-sm btn-warning w-100 fw-bold btn-redeem-card" 
+                                            data-bs-toggle="modal" data-bs-target="#redeemCardModal" 
+                                            data-bs-id="{{ card.id }}" data-bs-name="{{ card.promotion.name }}">
+                                        <i class="fas fa-gift me-1"></i> Entregar Premio
+                                    </button>
+                                    {% elif not card.is_completed and not card.is_expired %}
+                                    <a href="{% url 'stamps:add_stamp_customer' customer.id %}?promotion_id={{ card.promotion.id }}" class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-plus me-1"></i> Añadir Sello
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-5">
+                            <i class="fas fa-ticket-alt fa-3x text-muted opacity-25 mb-3"></i>
+                            <p class="text-muted">No tiene tarjetas de sellos registradas.</p>
+                            <a href="{% url 'stamps:assign_stamps' %}?customer_id={{ customer.id }}" class="btn btn-primary">Crear primera tarjeta</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Tab: Historial de Puntos -->
+                <div class="tab-pane fade" id="pills-history" role="tabpanel" aria-labelledby="pills-history-tab">
+                    <div class="card shadow-sm border-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Acción</th>
+                                        <th>Descripción</th>
+                                        <th class="text-end">Puntos</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for txn in point_transactions %}
+                                    <tr>
+                                        <td class="small">{{ txn.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            {% if txn.transaction_type == 'EARN' %}
+                                                <span class="badge bg-success-subtle text-success">Ganó</span>
+                                            {% elif txn.transaction_type == 'REDEEM' %}
+                                                <span class="badge bg-danger-subtle text-danger">Canjeó</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary">Ajuste</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="small">{{ txn.description }}</td>
+                                        <td class="text-end fw-bold {% if txn.transaction_type == 'REDEEM' %}text-danger{% else %}text-success{% endif %}">
+                                            {% if txn.transaction_type == 'REDEEM' %}-{% else %}+{% endif %}{{ txn.points }}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-5 text-muted">No hay movimientos de puntos.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Línea de Vida (Timeline) -->
+            <div class="card shadow-sm border-0 mb-4 timeline-card pb-2">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold small text-uppercase ls-1 text-primary"><i class="fas fa-history me-2"></i> LÍNEA DE VIDA</h6>
+                    <span class="badge bg-light text-muted fw-normal small px-2">{{ activity_logs|length }} eventos</span>
+                </div>
+                <div class="card-body pt-0" style="max-height: 500px; overflow-y: auto;">
+                    <div class="timeline-container position-relative py-2">
+                        <!-- Vertical Line -->
+                        <div class="position-absolute h-100 bg-light" style="width: 2px; left: 15px; top: 0; opacity: 0.6;"></div>
+                        
+                        {% for log in activity_logs %}
+                        <div class="timeline-item position-relative mb-4 ps-5">
+                            <!-- Icon Marker -->
+                            <div class="position-absolute rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" 
+                                 style="width: 32px; height: 32px; left: 0; top: 0; z-index: 10; border: 2px solid 
+                                 {% if log.action == 'WA_SENT' %}#25D366{% elif 'REDEEM' in log.action %}#ffc107{% elif 'ADD' in log.action %}#0d6efd{% else %}#dee2e6{% endif %};">
+                                <i class="{% if log.action == 'WA_SENT' %}fab fa-whatsapp text-success{% elif 'REDEEM' in log.action %}fas fa-gift text-warning{% elif 'ADD' in log.action %}fas fa-plus text-primary{% else %}fas fa-info text-muted{% endif %}" style="font-size: 0.8rem;"></i>
+                            </div>
+                            
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0 fw-bold small text-dark">{{ log.get_action_display }}</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;"><i class="far fa-clock me-1"></i>{{ log.created_at|timesince }}</small>
+                                </div>
+                                <p class="mb-1 text-muted small" style="line-height: 1.3;">{{ log.description }}</p>
+                                
+                                {% if user.is_owner %}
+                                <div class="d-flex align-items-center gap-3 mt-2 pt-1 border-top" style="font-size: 0.65rem; border-color: rgba(0,0,0,0.05) !important;">
+                                    <span class="text-primary"><i class="fas fa-user-circle me-1"></i>{{ log.user.get_full_name|default:log.user.username }}</span>
+                                    <span class="text-muted"><i class="fas fa-desktop me-1"></i>{{ log.ip_address }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-history fa-2x text-light mb-3"></i>
+                            <p class="text-muted small mb-0">No se registra actividad reciente para este cliente.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    <!-- Modal Confirmar Canje -->
+    <div class="modal fade" id="redeemCardModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content text-center">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pb-4">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-inline-flex justify-content-center align-items-center mb-4" style="width: 80px; height: 80px;">
+                        <i class="fas fa-gift fa-2x"></i>
+                    </div>
+                    <h4 class="fw-bold mb-2">¿Entregar premio?</h4>
+                    <p class="text-muted mb-0">Estás por marcar como entregado el premio de la promoción: <br><strong id="redeemPromoName"></strong></p>
+                    <p class="small text-muted mt-2">La tarjeta se archivará y quedará registrada como canjeada.</p>
+                </div>
+                <div class="modal-footer border-0 p-3 pt-0 d-flex gap-2">
+                    <button type="button" class="btn btn-light flex-grow-1 py-2 fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                    <a id="confirmRedeemBtn" href="#" class="btn btn-warning flex-grow-1 py-2 fw-bold px-4">Sí, Entregar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal WhatsApp -->
+    <div class="modal fade" id="waModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold">Enviar Mensaje a {{ customer.first_name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2">1. Selecciona una plantilla:</p>
+                    <div class="list-group list-group-flush border rounded-3 mb-3" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6 !important;">
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn" 
+                                data-message="¡Hola {{ customer.first_name }}! 👋 Te escribimos de Premium Barbershop. Solo recordarte que tienes {{ customer.total_points|default:0 }} puntos acumulados. ¡Te esperamos pronto!">
+                            <h6 class="mb-1 fw-bold small">Recordatorio de Puntos</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Informa sobre sus puntos actuales.</small>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
+                                data-message="¡Hola {{ customer.first_name }}! 👋 Tienes premios listos para canjear en tu tarjeta de sellos. ¡Ven por tu recompensa! 🎁">
+                            <h6 class="mb-1 fw-bold small">Aviso de Premio Listo</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Para clientes con canjes disponibles.</small>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
+                                data-message="¡Hola {{ customer.first_name }}! 👋 Te extrañamos en la barbería. Hace tiempo que no nos visitas. ¿Qué tal un corte esta semana? ✂️">
+                            <h6 class="mb-1 fw-bold small">Re-engagement</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Para clientes ausentes.</small>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
+                                data-message="¡Feliz cumpleaños {{ customer.first_name }}! 🎉🎂 De parte de todo el equipo de Premium Barbershop te deseamos lo mejor. ¡Ven hoy y recibe un descuento especial! 🎁">
+                            <h6 class="mb-1 fw-bold small">Saludo de Cumpleaños</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Felicita al cliente en su día.</small>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
+                                data-message="¡Hola {{ customer.first_name }}! 👋 Tenemos una nueva promoción que te encantará. ¡Pregunta en tu próxima visita! 💎">
+                            <h6 class="mb-1 fw-bold small">Nueva Promoción</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Anuncia novedades y servicios.</small>
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
+                                data-message="¡Hola {{ customer.first_name }}! 👋 ¡Gracias por tu visita de hoy! Esperamos que te haya gustado el servicio. ¡Nos vemos pronto! 💈">
+                            <h6 class="mb-1 fw-bold small">Agradecimiento Visita</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Post-servicio inmediato.</small>
+                        </button>
+                    </div>
+
+                    <p class="text-muted small mb-2">2. Edita tu mensaje antes de enviar:</p>
+                    <div class="mb-3">
+                        <textarea id="waMessageEditor" class="form-control" rows="4" placeholder="Selecciona una plantilla o escribe aquí..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 pt-0">
+                    <button type="button" id="waSendFinalBtn" class="btn btn-success w-100 py-2 fw-bold">
+                        <i class="fab fa-whatsapp me-1"></i> Enviar a WhatsApp
+                    </button>
+                </div>
+
+    <!-- Floating WhatsApp Button -->
+    {% if customer.phone %}
+    <a href="#" class="wa-float" data-bs-toggle="modal" data-bs-target="#waModal" title="Enviar WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const redeemModal = document.getElementById('redeemCardModal');
+        if (redeemModal) {
+            redeemModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const cardId = button.getAttribute('data-bs-id');
+                const promoName = button.getAttribute('data-bs-name');
+                
+                const confirmBtn = redeemModal.querySelector('#confirmRedeemBtn');
+                const nameSpan = redeemModal.querySelector('#redeemPromoName');
+                
+                nameSpan.textContent = promoName;
+                // Redirigir de vuelta a esta misma página después del canje
+                const currentPath = window.location.pathname;
+                confirmBtn.href = `/app/stamps/cards/${cardId}/redeem/?next=${encodeURIComponent(currentPath)}`;
+            });
+        }
+
+        // WhatsApp Messaging
+        const templateBtns = document.querySelectorAll('.wa-template-btn');
+        const waEditor = document.getElementById('waMessageEditor');
+        const waSendBtn = document.getElementById('waSendFinalBtn');
+        const waModal = document.getElementById('waModal');
+
+        if (waModal) {
+            waModal.addEventListener('show.bs.modal', function(event) {
+                const triggerBtn = event.relatedTarget;
+                const templateIndex = triggerBtn ? triggerBtn.getAttribute('data-template-index') : null;
+                
+                if (templateIndex !== null) {
+                    const targetBtn = templateBtns[parseInt(templateIndex)];
+                    if (targetBtn) {
+                        targetBtn.click(); // Simular click para cargar mensaje y estilo
+                    }
+                }
+            });
+        }
+
+        templateBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const message = this.getAttribute('data-message');
+                if (waEditor) {
+                    waEditor.value = message;
+                    // Efecto visual de selección
+                    templateBtns.forEach(b => b.classList.remove('active', 'bg-light'));
+                    this.classList.add('bg-light');
+                }
+            });
+        });
+
+        if (waSendBtn) {
+            waSendBtn.addEventListener('click', function() {
+                const messageText = waEditor.value.trim();
+                const templateName = document.querySelector('.wa-template-btn.bg-light')?.querySelector('h6')?.innerText || "Personalizado";
+                
+                if (messageText === "") {
+                    alert("Por favor, selecciona una plantilla o escribe un mensaje.");
+                    return;
+                }
+
+                // Registrar en el historial vía AJAX
+                fetch("{% url 'customers:log_whatsapp_message' customer.id %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: `template_name=${encodeURIComponent(templateName)}`
+                }).then(response => {
+                    const finalMessage = encodeURIComponent(messageText);
+                    const phone = "{{ customer.phone }}".replace(/\D/g,'');
+                    window.open(`https://wa.me/${phone}?text=${finalMessage}`, '_blank');
+                    // Recargar opcionalmente o avisar
+                    console.log("WhatsApp log registrado");
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

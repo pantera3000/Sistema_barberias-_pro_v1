@@ -1,0 +1,58 @@
+{% for customer in customers %}
+<tr {% if customer.is_birthday_today %}class="table-warning border-start border-4 border-warning"{% endif %}>
+    <td>
+        <div class="d-flex align-items-center">
+            <div class="rounded-circle {% if customer.is_birthday_today %}bg-white text-warning{% else %}bg-light text-success{% endif %} d-flex justify-content-center align-items-center me-3 border" style="width: 40px; height: 40px;">
+                <i class="fas {% if customer.is_birthday_today %}fa-birthday-cake{% else %}fa-user{% endif %}"></i>
+            </div>
+            <div>
+                <a href="{% url 'customers:customer_detail' customer.pk %}" class="fw-bold text-decoration-none text-dark hover-primary">
+                    {{ customer.full_name }}
+                    {% if customer.is_birthday_today %}
+                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">¡FELIZ CUMPLEAÑOS!</span>
+                    {% endif %}
+                </a>
+                <small class="text-muted d-block">ID: {{ customer.id }}</small>
+            </div>
+        </div>
+    </td>
+    <td>
+        <div><i class="fas fa-envelope text-muted me-1"></i> {{ customer.email|default:"-" }}</div>
+        <div><i class="fas fa-phone text-muted me-1"></i> {{ customer.phone|default:"-" }}</div>
+    </td>
+    <td>
+        {% if customer.is_birthday_today %}
+        <span class="text-dark fw-bold"><i class="fas fa-cake-candles me-1 text-warning"></i> {{ customer.birthday_display }}</span>
+        {% else %}
+        {{ customer.birthday_display }}
+        {% endif %}
+    </td>
+    <td>
+        {% if customer.is_active %}
+        <span class="badge bg-success">Activo</span>
+        {% else %}
+        <span class="badge bg-secondary">Inactivo</span>
+        {% endif %}
+    </td>
+    <td class="text-end">
+        <a href="{% url 'customers:customer_detail' customer.pk %}" class="btn btn-sm btn-outline-info" title="Historial">
+            <i class="fas fa-history"></i>
+        </a>
+        <a href="{% url 'customers:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-secondary" title="Editar">
+            <i class="fas fa-edit"></i>
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-customer" 
+                data-bs-toggle="modal" data-bs-target="#deleteCustomerModal" 
+                data-bs-id="{{ customer.pk }}" data-bs-name="{{ customer.full_name }}" title="Eliminar">
+            <i class="fas fa-trash"></i>
+        </button>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="text-center py-5 text-muted">
+        <i class="fas fa-users-slash fa-2x mb-3"></i>
+        <p>No se encontraron clientes.</p>
+    </td>
+</tr>
+{% endfor %}

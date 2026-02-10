@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'campaigns:campaign_list' %}">Campañas</a></li>
+                    <li class="breadcrumb-item active">{{ campaign.name }}</li>
+                </ol>
+            </nav>
+            <h2 class="h3 mb-0"><i class="fas fa-paper-plane text-primary me-2"></i> Ejecución de Campaña</h2>
+        </div>
+        <div>
+            <span class="badge {% if campaign.status == 'SENT' %}bg-success{% else %}bg-primary{% endif %} fs-6">
+                {{ campaign.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Panel de Control y Estadísticas -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0">Detalles del Mensaje</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <label class="text-muted small text-uppercase fw-bold">Canal</label>
+                        <p class="mb-0">
+                            {% if campaign.channel == 'WHATSAPP' %}
+                                <i class="fab fa-whatsapp text-success me-1"></i> WhatsApp
+                            {% elif campaign.channel == 'EMAIL' %}
+                                <i class="fas fa-envelope text-primary me-1"></i> Email
+                            {% else %}
+                                <i class="fas fa-sms text-info me-1"></i> SMS
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="text-muted small text-uppercase fw-bold">Mensaje a enviar</label>
+                        <div class="p-3 bg-light rounded border small" style="white-space: pre-wrap;">{{ campaign.content }}</div>
+                        <small class="text-muted mt-1 d-block italic">* Las variables como {nombre} se autocompletarán al abrir el chat.</small>
+                    </div>
+
+                    <hr>
+
+                    <div class="mt-4">
+                        <h6 class="mb-3">Progreso de Envío</h6>
+                        <div class="progress mb-2" style="height: 10px;">
+                            <div id="main-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                                 role="progressbar" style="width: {{ progress_pct }}%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span id="sent-count">{{ sent }}</span> de {{ total }} enviados
+                            <span id="progress-pct">{{ progress_pct|floatformat:0 }}%</span>
+                        </div>
+                    </div>
+                </div>
+                {% if campaign.status != 'SENT' %}
+                <div class="card-footer bg-light">
+                    <div class="alert alert-info py-2 mb-0 small">
+                        <i class="fas fa-info-circle me-1"></i> Haz clic en "Enviar" cliente por cliente para abrir el canal correspondiente.
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Lista de Destinatarios -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Lista de Destinatarios</h5>
+                    <div class="input-group input-group-sm w-50">
+                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="recipientSearch" class="form-control border-start-0 bg-light" placeholder="Buscar cliente...">
+                    </div>
+                </div>
+                <div class="table-responsive" style="max-height: 600px;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Contacto</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recipientTable">
+                            {% for log in logs %}
+                            <tr id="log-row-{{ log.id }}" class="{% if log.status == 'SENT' %}table-success opacity-75{% endif %}">
+                                <td>
+                                    <div class="fw-bold">{{ log.customer.full_name }}</div>
+                                    <div class="text-muted small">{{ log.customer.organization.name }}</div>
+                                </td>
+                                <td>
+                                    {% if campaign.channel == 'WHATSAPP' %}
+                                        <span class="text-success small"><i class="fab fa-whatsapp"></i> {{ log.customer.phone|default:"Sin teléfono" }}</span>
+                                    {% else %}
+                                        <span class="text-primary small"><i class="fas fa-envelope"></i> {{ log.customer.email|default:"Sin email" }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span id="status-badge-{{ log.id }}" class="badge {% if log.status == 'SENT' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                        {% if log.status == 'SENT' %}Enviado{% else %}Pendiente{% endif %}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    {% if log.status == 'SENT' %}
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    {% else %}
+                                        {% if campaign.channel == 'WHATSAPP' %}
+                                            <a href="https://wa.me/{{ log.customer.phone|default:'' }}?text={{ campaign.content|urlencode }}" 
+                                               target="_blank"  
+                                               class="btn btn-sm btn-success send-btn" 
+                                               data-log-id="{{ log.id }}">
+                                                <i class="fab fa-whatsapp me-1"></i> Enviar
+                                            </a>
+                                        {% elif campaign.channel == 'EMAIL' %}
+                                            <a href="mailto:{{ log.customer.email }}?subject={{ campaign.subject|urlencode }}&body={{ campaign.content|urlencode }}" 
+                                               class="btn btn-sm btn-primary send-btn" 
+                                               data-log-id="{{ log.id }}">
+                                                <i class="fas fa-envelope me-1"></i> Enviar
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="fas fa-users mb-2 d-block fs-3"></i>
+                                    No hay destinatarios asignados a esta campaña.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sendButtons = document.querySelectorAll('.send-btn');
+    const tableRows = document.querySelectorAll('#recipientTable tr');
+    const searchInput = document.getElementById('recipientSearch');
+
+    // Función para actualizar estado vía AJAX
+    function updateLogStatus(logId) {
+        const formData = new FormData();
+        formData.append('status', 'SENT');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch(`/app/campaigns/log/${logId}/update-status/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                // Actualizar UI de la fila
+                const row = document.getElementById(`log-row-${logId}`);
+                const badge = document.getElementById(`status-badge-${logId}`);
+                const btnContainer = row.querySelector('.text-end');
+
+                row.classList.add('table-success', 'opacity-75');
+                badge.className = 'badge bg-success';
+                badge.textContent = 'Enviado';
+                btnContainer.innerHTML = '<button class="btn btn-sm btn-outline-secondary" disabled><i class="fas fa-check"></i></button>';
+
+                // Actualizar barra de progreso (simplificado, recargar si se quiere precisión absoluta)
+                updateGlobalProgress();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function updateGlobalProgress() {
+        const total = {{ total }};
+        const rowsSent = document.querySelectorAll('#recipientTable .table-success').length;
+        const pct = Math.round((rowsSent / total) * 100);
+        
+        document.getElementById('main-progress-bar').style.width = pct + '%';
+        document.getElementById('sent-count').textContent = rowsSent;
+        document.getElementById('progress-pct').textContent = pct + '%';
+        
+        if (pct === 100) {
+            Swal.fire({
+                title: '¡Campaña Completada!',
+                text: 'Todos los mensajes han sido enviados exitosamente.',
+                icon: 'success',
+                confirmButtonText: 'Genial'
+            });
+        }
+    }
+
+    // Listener para botones de envío
+    sendButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const logId = this.getAttribute('data-log-id');
+            // Retrasar un poco el marcado como enviado para que el navegador abra el link primero
+            setTimeout(() => {
+                updateLogStatus(logId);
+            }, 1000);
+        });
+    });
+
+    // Filtro de búsqueda
+    searchInput.addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        tableRows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

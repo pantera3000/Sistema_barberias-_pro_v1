@@ -33,6 +33,7 @@ urlpatterns = [
     path('app/rewards/', include('apps.rewards.urls')),
     path('app/reports/', include('apps.reports.urls')),
     path('app/campaigns/', include('apps.campaigns.urls')),
+    path('app/audit/', include('apps.audit.urls')),
     path('dashboard/', dashboard_dispatch, name='dashboard_dispatch'),
     path('', RedirectView.as_view(pattern_name='users:login'), name='home'),
 ]

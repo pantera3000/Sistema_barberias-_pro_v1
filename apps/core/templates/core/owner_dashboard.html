@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-shield-alt text-primary me-2"></i> Control de Cuadre y Auditoría
+            </h1>
+            <p class="text-muted mb-0">Supervisión visual de actividad para el dueño.</p>
+        </div>
+        <div class="text-end">
+            <div class="badge bg-light text-dark border p-2 mb-1">
+                <i class="fas fa-calendar-day me-1"></i> {{ today|date:"d M Y" }}
+            </div>
+            <div class="small text-muted">Horario: {{ tenant.opening_time|time:"H:i" }} - {{ tenant.closing_time|time:"H:i" }}</div>
+        </div>
+    </div>
+
+    <!-- Ranking de Barberos (Opción A) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 border-0">
+                    <h5 class="card-title mb-0 fw-bold">🏆 Ranking de Trabajo (Hoy)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+                        {% for barber in barber_stats %}
+                        <div class="col">
+                            <div class="card h-100 border-0 shadow-sm transition-hover">
+                                <div class="card-body text-center p-4">
+                                    <div class="avatar-lg bg-light rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 70px; height: 70px;">
+                                        <i class="fas fa-user-tie fa-2x text-primary"></i>
+                                    </div>
+                                    <h5 class="mb-1 fw-bold">{{ barber.get_full_name|default:barber.username }}</h5>
+                                    <p class="text-muted small mb-3 text-uppercase letter-spacing-1">{{ barber.role_display }}</p>
+                                    
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <div class="p-2 bg-primary bg-opacity-10 rounded">
+                                                <div class="h4 mb-0 text-primary">{{ barber.total_stamps }}</div>
+                                                <div class="small text-muted">Sellos</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="p-2 bg-info bg-opacity-10 rounded">
+                                                <div class="h4 mb-0 text-info">{{ barber.total_points }}</div>
+                                                <div class="small text-muted">Puntos</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-5">
+                            <i class="fas fa-user-clock fa-3x text-light mb-3"></i>
+                            <p class="text-muted">No hay actividad registrada el día de hoy.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Semáforo de Alertas (Opción C) -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 fw-bold">🚨 Semáforo de Actividad (Auditoría Inteligente)</h5>
+                    <span class="badge {% if alerts %}bg-danger{% else %}bg-success{% endif %} rounded-pill py-2 px-3">
+                        {% if alerts %}{{ alerts|length }} Alertas{% else %}Todo Normal{% endif %}
+                    </span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Alerta</th>
+                                    <th>Usuario</th>
+                                    <th>Detalle</th>
+                                    <th>Hora</th>
+                                    <th class="text-end pe-4">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in alerts %}
+                                <tr class="{% if alert.type == 'DANGER' %}table-danger-light{% elif alert.type == 'WARNING' %}table-warning-light{% endif %}">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="icon-circle {% if alert.type == 'DANGER' %}bg-danger{% else %}bg-warning{% endif %} text-white me-3">
+                                                <i class="{{ alert.icon }}"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ alert.title }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark fw-normal border">
+                                            <i class="fas fa-user-circle me-1"></i> {{ alert.log.user }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="small text-dark">{{ alert.message }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small">{{ alert.log.created_at|date:"H:i:s" }}</span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <a href="{% url 'audit:log_list' %}?user={{ alert.log.user.pk }}&date={{ today }}" class="btn btn-sm btn-outline-dark">
+                                            <i class="fas fa-search-plus"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="text-success mb-2">
+                                            <i class="fas fa-check-circle fa-3x"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-1">Sin anomalías detectadas</h6>
+                                        <p class="text-muted small mb-0">El sistema no ha encontrado comportamientos sospechosos hoy.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Horarios y Resumen -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0 mb-4 bg-gradient-primary text-white">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Información del Sistema</h5>
+                    <div class="mb-3">
+                        <label class="small text-white-50 d-block">Horas de Seguridad (Bloqueo)</label>
+                        <span class="h4 fw-bold">{{ tenant.stamp_lock_hours }} horas</span>
+                        <div class="small mt-1">Bloqueo entre sellos al mismo cliente.</div>
+                    </div>
+                    <hr class="bg-white-50">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-white text-primary me-3">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div>
+                            <div class="small text-white-50">Horario Configurado</div>
+                            <div class="fw-bold">{{ tenant.opening_time|time:"H:i" }} a {{ tenant.closing_time|time:"H:i" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <i class="fas fa-info-circle text-info fa-2x mb-3"></i>
+                    <h6 class="fw-bold">¿Cómo funciona el semáforo?</h6>
+                    <p class="text-muted small text-start">
+                        El sistema analiza automáticamente cada acción de tus trabajadores y busca dos cosas:
+                    </p>
+                    <ul class="text-start small text-muted">
+                        <li><strong>Fuera de Horario:</strong> Si alguien pone sellos cuando tu local debería estar cerrado.</li>
+                        <li><strong>Velocidad Sospechosa:</strong> Si se ponen varios sellos seguidos con muy pocos minutos de diferencia.</li>
+                    </ul>
+                    <a href="{% url 'core:tenant_settings' %}" class="btn btn-sm btn-light w-100 mt-2 border">Actualizar Horarios</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    }
+    .icon-circle {
+        height: 2.5rem;
+        width: 2.5rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .table-danger-light {
+        background-color: rgba(231, 74, 59, 0.05);
+    }
+    .table-warning-light {
+        background-color: rgba(246, 194, 62, 0.05);
+    }
+    .transition-hover:hover {
+        transform: translateY(-5px);
+        transition: all 0.3s ease;
+    }
+    .letter-spacing-1 {
+        letter-spacing: 1px;
+    }
+    .avatar-lg {
+        border: 2px solid #f8f9fc;
+    }
+</style>
+{% endblock %}

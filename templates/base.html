@@ -16,18 +16,79 @@
         .nav-link { color: #495057; font-weight: 500; }
         .nav-link.active { color: #0d6efd; background-color: #e9ecef; }
         .nav-link:hover { color: #0d6efd; }
+        
+        /* Birthday Widget Styles */
+        .birthday-widget {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .birthday-widget:hover { transform: scale(1.05); }
+        .birthday-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ff3b30;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .cake-animation {
+            animation: cake-pulse 2s infinite;
+        }
+        @keyframes cake-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-
+{% if has_birthday_today %}
+<div class="birthday-banner py-2 text-white text-center shadow-sm" style="background: linear-gradient(90deg, #ff0080, #7928ca); z-index: 1050; position: relative;">
+    <div class="container-fluid">
+        <i class="fas fa-birthday-cake me-2 animate-bounce"></i>
+        <strong>¡Hoy es día de celebración!</strong> Cumplen años: 
+        {% for customer in birthday_celebrants %}
+            <span class="badge bg-white text-dark mx-1">{{ customer.get_full_name }}</span>
+        {% endfor %}
+        <i class="fas fa-party-horn ms-2"></i>
+    </div>
+</div>
+<style>
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+    }
+    .animate-bounce { animation: bounce 2s infinite; }
+    .birthday-banner { font-size: 0.95rem; }
+</style>
+{% endif %}
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
         {% if user.is_authenticated %}
         <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse pt-3">
             <div class="position-sticky">
-                <h5 class="px-3 mb-4 text-primary"><i class="fas fa-cut"></i> Loyalty System</h5>
+                <div class="d-flex align-items-center justify-content-between px-3 mb-4">
+                    <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cut"></i> Loyalty System</h5>
+                    {% if has_birthday_today %}
+                    <div class="birthday-widget" data-bs-toggle="modal" data-bs-target="#birthdayListModal" title="¡Hay cumpleañeros!">
+                        <div class="cake-animation">
+                            <span style="font-size: 1.5rem;">🧁</span>
+                        </div>
+                        <span class="birthday-badge">{{ birthday_celebrants.count }}</span>
+                    </div>
+                    {% endif %}
+                </div>
                 <ul class="nav flex-column">
                     {% if user.is_superuser %}
                     <li class="nav-item">
@@ -60,26 +121,51 @@
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
                     </li>
+                    {% if user.has_feature_points %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'loyalty' in request.path %}active{% endif %}" href="{% url 'loyalty:transaction_list' %}">
                             <i class="fas fa-star me-2"></i> Puntos
                         </a>
                     </li>
+                    {% endif %}
+                    {% if user.has_feature_stamps %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'stamps' in request.path %}active{% endif %}" href="{% url 'stamps:card_list' %}">
-                            <i class="fas fa-ticket-alt me-2"></i> Sellos
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'stamps' in request.path %}active{% endif %}" 
+                           data-bs-toggle="collapse" href="#stampsSubmenu" role="button" 
+                           aria-expanded="{% if 'stamps' in request.path %}true{% else %}false{% endif %}">
+                            <span><i class="fas fa-ticket-alt me-2"></i> Sellos</span>
+                            <i class="fas fa-chevron-down small opacity-50"></i>
                         </a>
+                        <div class="collapse {% if 'stamps' in request.path %}show{% endif %}" id="stampsSubmenu">
+                            <ul class="nav flex-column ms-4 border-start border-2">
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'card_list' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:card_list' %}">
+                                        <i class="fas fa-list me-1"></i> Listado
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 small {% if 'promotion' in request.path %}text-primary fw-bold{% endif %}" href="{% url 'stamps:promotion_list' %}">
+                                        <i class="fas fa-cog me-1"></i> Configurar
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </li>
+                    {% endif %}
+                    {% if user.has_feature_customers %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'customers' in request.path %}active{% endif %}" href="{% url 'customers:customer_list' %}">
                             <i class="fas fa-users me-2"></i> Clientes
                         </a>
                     </li>
+                    {% endif %}
+                    {% if user.has_feature_services %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'services' in request.path %}active{% endif %}" href="{% url 'services:service_list' %}">
                             <i class="fas fa-cut me-2"></i> Servicios
                         </a>
                     </li>
+                    {% endif %}
                     {% if user.is_owner %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'workers' in request.path %}active{% endif %}" href="{% url 'users:worker_list' %}">
@@ -88,21 +174,63 @@
                     </li>
                     {% endif %}
                     
+                    {% if user.has_feature_rewards %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'rewards' in request.path %}active{% endif %}" href="{% url 'rewards:reward_list' %}">
                             <i class="fas fa-gift me-2"></i> Premios
                         </a>
                     </li>
+                    {% endif %}
+                    {% if user.has_feature_reports %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'reports' in request.path %}active{% endif %}" href="{% url 'reports:transaction_report' %}">
                             <i class="fas fa-chart-line me-2"></i> Reportes
                         </a>
                     </li>
+                    {% endif %}
+                    {% if user.has_feature_campaigns %}
                     <li class="nav-item">
-                        <a class="nav-link {% if 'campaigns' in request.path %}active{% endif %}" href="{% url 'campaigns:campaign_list' %}">
-                            <i class="fas fa-bullhorn me-2"></i> Marketing
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'campaigns' in request.path %}active{% endif %}" 
+                           data-bs-toggle="collapse" href="#marketingSubmenu" role="button" 
+                           aria-expanded="{% if 'campaigns' in request.path %}true{% else %}false{% endif %}">
+                            <span><i class="fas fa-bullhorn me-2"></i> Marketing</span>
+                            <i class="fas fa-chevron-down small opacity-50"></i>
+                        </a>
+                        <div class="collapse {% if 'campaigns' in request.path %}show{% endif %}" id="marketingSubmenu">
+                            <ul class="nav flex-column ms-4 border-start border-2">
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'campaign_list' %}text-primary fw-bold{% endif %}" href="{% url 'campaigns:campaign_list' %}">
+                                        <i class="fas fa-paper-plane me-1"></i> Campañas
+                                    </a>
+                                </li>
+                                {% if user.has_feature_notifications %}
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'notification_settings' %}text-primary fw-bold{% endif %}" href="{% url 'campaigns:notification_settings' %}">
+                                        <i class="fas fa-robot me-1"></i> Auto-Mensajes
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+
+                    {% if user.is_owner %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'owner-control' in request.path %}active{% endif %}" href="{% url 'core:owner_dashboard' %}">
+                            <i class="fas fa-shield-alt text-warning me-2"></i> Control de Dueño
                         </a>
                     </li>
+                    {% endif %}
+
+                    {% if user.has_feature_audit %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'audit' in request.path %}active{% endif %}" href="{% url 'audit:log_list' %}">
+                            <i class="fas fa-history me-2"></i> Auditoría
+                        </a>
+                    </li>
+                    {% endif %}
+                    
                     <li class="nav-item">
                         <a class="nav-link {% if 'settings' in request.path %}active{% endif %}" href="{% url 'core:tenant_settings' %}">
                             <i class="fas fa-cog me-2"></i> Configuración
@@ -143,6 +271,83 @@
         </main>
     </div>
 </div>
+
+<!-- Modal de Cumpleañeros -->
+{% if has_birthday_today %}
+<div class="modal fade" id="birthdayListModal" tabindex="-1" aria-labelledby="birthdayListModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 25px; background: #fff;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4 overflow-hidden position-relative" style="border-radius: 25px 25px 0 0;">
+                <!-- Decoración de globos en background (emojis) -->
+                <div class="position-absolute opacity-10" style="top: 10px; right: 20px; font-size: 3rem; transform: rotate(15deg);">🎈</div>
+                <div class="position-absolute opacity-10" style="top: -10px; left: 10px; font-size: 2.5rem; transform: rotate(-15deg);">🎊</div>
+                
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center" id="birthdayListModalLabel" style="z-index: 1;">
+                    <span class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                        <i class="fas fa-birthday-cake"></i>
+                    </span>
+                    ¡Celebrados de Hoy!
+                </h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-4">Hoy tenemos <strong>{{ birthday_celebrants.count }}</strong> cliente{{ birthday_celebrants.count|pluralize }} de cumpleaños. ¡Haz que su día sea especial!</p>
+                
+                <div class="celebrants-list">
+                    {% for customer in birthday_celebrants %}
+                    <div class="celebrant-card mb-3 p-3 rounded-4 border border-light shadow-sm d-flex align-items-center justify-content-between border-2 transition-all">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-initial bg-gradient-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center fw-bold" 
+                                 style="width: 48px; height: 48px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);">
+                                {{ customer.first_name|first }}{{ customer.last_name|first }}
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">{{ customer.full_name }}</h6>
+                                <div class="d-flex align-items-center text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-phone-alt me-1" style="font-size: 0.65rem;"></i>
+                                    {{ customer.phone|default:"Sin teléfono" }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="actions">
+                            {% if customer.phone %}
+                            <a href="https://wa.me/{{ customer.phone|cut:' ' }}?text=¡Feliz cumpleaños {{ customer.first_name }}! 🎉🎂 De parte de todo el equipo de {{ request.tenant.name|default:'la barbería' }} te deseamos lo mejor. ¡Ven hoy y recibe un descuento especial! 🎁" 
+                               target="_blank" 
+                               class="btn btn-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center shadow-sm hover-lift"
+                               onclick="registerBirthdayLog('{{ customer.id }}')"
+                               style="font-size: 0.8rem; background-color: #25d366; border-color: #25d366;">
+                                <i class="fab fa-whatsapp me-2"></i> Felicitar
+                            </a>
+                            {% else %}
+                            <span class="badge bg-light text-muted fw-normal p-2 px-3 border rounded-pill" style="font-size: 0.7rem;">Sin contacto</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-dark w-100 fw-bold py-3 rounded-pill shadow-sm" data-bs-dismiss="modal">Entendido, ¡gracias!</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .transition-all { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .celebrant-card:hover { 
+        border-color: #a855f7 !important; 
+        background: #faf5ff;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(168, 85, 247, 0.1), 0 4px 6px -2px rgba(168, 85, 247, 0.05) !important;
+    }
+    .hover-lift { transition: transform 0.2s; }
+    .hover-lift:hover { transform: translateY(-2px); }
+    .bg-gradient-primary { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); }
+    .rounded-4 { border-radius: 1rem !important; }
+</style>
+{% endif %}
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

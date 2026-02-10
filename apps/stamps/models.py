@@ -45,6 +45,11 @@ class StampCard(TenantAwareModel):
     redemption_requested = models.BooleanField(default=False, verbose_name="Canje solicitado")
     requested_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de solicitud")
 
+    # Seguimiento de notificaciones para evitar duplicados
+    one_stamp_reminder_sent = models.BooleanField(default=False, verbose_name="Recordatorio 'Falta 1' enviado")
+    completed_notified = models.BooleanField(default=False, verbose_name="Notificación 'Completada' enviada")
+    expiring_notified = models.BooleanField(default=False, verbose_name="Notificación 'Por Vencer' enviada")
+
     class Meta:
         verbose_name = "Tarjeta de Sellos"
         verbose_name_plural = "Tarjetas de Sellos"
@@ -92,3 +97,29 @@ class StampTransaction(TenantAwareModel):
     class Meta:
         verbose_name = "Transacción de Sello"
         verbose_name_plural = "Transacciones de Sellos"
+
+class StampRequest(TenantAwareModel):
+    """
+    Solicitud de sello iniciada por el cliente vía QR.
+    """
+    STATUS_CHOICES = [
+        ('PENDING', 'Pendiente'),
+        ('APPROVED', 'Aprobado'),
+        ('REJECTED', 'Rechazado'),
+    ]
+    
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='stamp_requests', verbose_name="Cliente")
+    promotion = models.ForeignKey(StampPromotion, on_delete=models.CASCADE, verbose_name="Promoción")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING', verbose_name="Estado")
+    
+    requested_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha Solicitud")
+    resolved_at = models.DateTimeField(null=True, blank=True, verbose_name="Fecha Resolución")
+    resolved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Resuelto por")
+
+    class Meta:
+        verbose_name = "Solicitud de Sello"
+        verbose_name_plural = "Solicitudes de Sellos"
+        ordering = ['-requested_at']
+
+    def __str__(self):
+        return f"Solicitud: {self.customer} ({self.get_status_display()})"

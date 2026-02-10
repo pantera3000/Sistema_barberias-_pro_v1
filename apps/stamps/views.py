@@ -7,6 +7,7 @@ from .models import StampPromotion, StampCard, StampTransaction
 from .forms import StampPromotionForm, StampAssignmentForm
 from django.core.paginator import Paginator
 from apps.customers.models import Customer
+from apps.audit.utils import log_action
 
 @login_required
 def promotion_list(request):
@@ -245,6 +246,15 @@ def add_stamp_customer(request, customer_id):
                 quantity=quantity,
                 performed_by=request.user
             )
+
+            # Log de auditoría
+            log_action(
+                request, 
+                'STAMP_ADD', 
+                'Sello', 
+                f"Sello(s) agregado(s): {quantity} - Promo: {card.promotion.name}",
+                customer=customer
+            )
             
             msg = f"Sello añadido correctamente."
             if quantity == 2:
@@ -358,7 +368,7 @@ def redeem_card(request, pk):
     card.is_redeemed = True
     card.save()
 
-    # Log transacción canje
+    # Log transacción canje (modelo stamps)
     StampTransaction.objects.create(
         organization=request.tenant,
         card=card,
@@ -366,8 +376,22 @@ def redeem_card(request, pk):
         quantity=0,
         performed_by=request.user
     )
+
+    # Log de auditoría general
+    log_action(
+        request, 
+        'STAMP_REDEEM', 
+        'Sello', 
+        f"Canjeado premio para {card.customer.full_name} - Promo: {card.promotion.name}",
+        customer=card.customer
+    )
     
     messages.success(request, "Recompensa canjeada exitosamente. Se ha archivado la tarjeta.")
+    
+    # Redirección flexible
+    next_url = request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
     return redirect('stamps:card_list')
 
 @login_required

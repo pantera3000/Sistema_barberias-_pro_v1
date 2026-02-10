@@ -24,7 +24,10 @@
                     {% else %}
                         <span class="badge bg-secondary-soft text-secondary">{{ tx.get_action_display }}</span>
                     {% endif %}
-                    <div class="small text-muted mt-1">{{ tx.card.promotion.name }}</div>
+                    <div class="small fw-bold mt-1" style="color: {{ tx.card.promotion.primary_color }}">{{ tx.card.promotion.name }}</div>
+                    {% if tx.action == 'REDEEM' %}
+                        <div class="small text-dark fw-bold">🎁 {{ tx.card.promotion.reward.name|default:tx.card.promotion.reward_description }}</div>
+                    {% endif %}
                 </td>
                 <td><span class="fw-bold">{{ tx.quantity }}</span></td>
                 <td>

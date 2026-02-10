@@ -14,9 +14,16 @@
                 <form method="post">
                     {% csrf_token %}
                     
-                    <div class="mb-3">
-                        <label class="form-label">Nombre de la Campaña (Interno)</label>
-                        {{ form.name }}
+                    <div class="row align-items-end">
+                        <div class="col-md-9 mb-3">
+                            <label class="form-label fw-bold">Nombre de la Campaña (Interno)</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <span class="badge {% if campaign.status == 'SENT' %}bg-success{% elif campaign.status == 'SCHEDULED' %}bg-info text-white{% else %}bg-secondary{% endif %} w-100 py-2 fs-6">
+                                {{ campaign.get_status_display|default:"Borrador" }}
+                            </span>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -30,7 +37,17 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="card bg-light mb-3 border-0">
+                        <div class="card-body">
+                            <div class="mb-0">
+                                <label class="form-label text-primary fw-bold"><i class="fas fa-magic me-1"></i> {{ form.template.label }}</label>
+                                {{ form.template }}
+                                <div class="form-text small">Carga un mensaje predefinido para ahorrar tiempo.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="subject-container" style="display: none;">
                         <label class="form-label">Asunto (Solo Email)</label>
                         {{ form.subject }}
                     </div>
@@ -38,7 +55,7 @@
                     <div class="mb-3">
                         <label class="form-label">Contenido del Mensaje</label>
                         {{ form.content }}
-                        <div class="form-text">Puedes usar variables como {nombre} en el futuro.</div>
+                        <div class="form-text">Puedes usar variables como <strong>{nombre}</strong> y <strong>{negocio}</strong>.</div>
                     </div>
 
                     <div class="mb-3">
@@ -48,11 +65,57 @@
 
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{% url 'campaigns:campaign_list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">Guardar Borrador</button>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save me-1"></i> {% if is_edit %}Guardar Cambios{% else %}Crear Campaña{% endif %}
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.getElementById('id_template');
+    const contentArea = document.getElementById('id_content');
+    const channelSelect = document.getElementById('id_channel');
+    const subjectContainer = document.getElementById('subject-container');
+
+    // Función para alternar visibilidad de Asunto
+    function toggleSubject() {
+        if (channelSelect.value === 'EMAIL') {
+            subjectContainer.style.display = 'block';
+        } else {
+            subjectContainer.style.display = 'none';
+        }
+    }
+
+    if (channelSelect) {
+        channelSelect.addEventListener('change', toggleSubject);
+        toggleSubject(); // Ejecutar al cargar
+    }
+
+    if (templateSelect) {
+        templateSelect.addEventListener('change', function() {
+            const templateId = this.value;
+            if (templateId) {
+                fetch(`/app/campaigns/templates/${templateId}/content/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.content) {
+                            contentArea.value = data.content;
+                            // Opcional: Notificación visual simple
+                            contentArea.classList.add('is-valid');
+                            setTimeout(() => contentArea.classList.remove('is-valid'), 2000);
+                        }
+                    })
+                    .catch(error => console.error('Error cargando plantilla:', error));
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

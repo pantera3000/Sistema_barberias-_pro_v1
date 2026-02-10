@@ -6,6 +6,7 @@ from django.db.models import Sum
 from .models import PointTransaction
 from .forms import PointAssignmentForm
 from apps.customers.models import Customer
+from apps.audit.utils import log_action
 
 @login_required
 def transaction_list(request):
@@ -34,6 +35,13 @@ def assign_points(request):
             txn.organization = request.tenant
             txn.performed_by = request.user
             txn.save()
+            log_action(
+                request, 
+                'POINTS_ADD', 
+                'Puntos', 
+                f"Asignados {txn.points} puntos a {txn.customer.full_name}",
+                customer=txn.customer
+            )
             messages.success(request, f"Transacción registrada: {txn.points} pts a {txn.customer}")
             return redirect('loyalty:transaction_list')
     else:

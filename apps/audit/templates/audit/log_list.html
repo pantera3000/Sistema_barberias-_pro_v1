@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-history me-2 text-primary"></i> {{ title }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-file-export me-1"></i> Exportar Logs
+        </button>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Filtrar por Usuario</label>
+                <select name="user" class="form-select">
+                    <option value="">Todos los usuarios</option>
+                    {% for staff in staff_users %}
+                    <option value="{{ staff.id }}" {% if request.GET.user == staff.id|stringformat:"s" %}selected{% endif %}>{{ staff.get_full_name|default:staff.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Filtrar por Acción</label>
+                <select name="action" class="form-select">
+                    <option value="">Todas las acciones</option>
+                    {% for code, label in action_choices %}
+                    <option value="{{ code }}" {% if request.GET.action == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="fas fa-filter me-1"></i> Filtrar
+                </button>
+                <a href="{% url 'audit:log_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-undo"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla de Logs -->
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Usuario</th>
+                    <th>Acción</th>
+                    <th>Recurso</th>
+                    <th>Descripción</th>
+                    <th>IP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in page_obj %}
+                <tr>
+                    <td class="small text-nowrap">
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">{{ log.created_at|date:"d/m/Y" }}</span>
+                        <span class="fw-bold">{{ log.created_at|date:"H:i:s" }}</span>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-secondary bg-opacity-10 p-2 me-2">
+                                <i class="fas fa-user-shield text-secondary"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold small">{{ log.user.get_full_name|default:log.user.username }}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">{{ log.user.get_role_display }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        {% if log.action == 'CREATE' %}
+                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2">Creación</span>
+                        {% elif log.action == 'UPDATE' %}
+                            <span class="badge bg-info-subtle text-info border border-info border-opacity-25 px-2">Actualización</span>
+                        {% elif log.action == 'DELETE' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 px-2">Eliminación</span>
+                        {% elif 'STAMP' in log.action or 'POINTS' in log.action %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning border-opacity-25 px-2">{{ log.get_action_display }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary px-2">{{ log.get_action_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-light text-dark border">{{ log.resource }}</span></td>
+                    <td class="small">{{ log.description }}</td>
+                    <td class="small text-muted">{{ log.ip_address|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
+                        <p>No se encontraron registros de actividad.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Paginación -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-0 py-3">
+        <nav aria-label="Navegación de logs">
+            <ul class="pagination pagination-sm justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}">Anterior</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.user %}&user={{ request.GET.user }}{% endif %}{% if request.GET.action %}&action={{ request.GET.action }}{% endif %}">Siguiente</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

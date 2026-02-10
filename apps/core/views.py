@@ -138,3 +138,85 @@ def tenant_settings(request):
         'title': 'Configuración del Negocio',
         'tenant': tenant
     })
+from apps.audit.models import AuditLog
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+@login_required
+def owner_dashboard(request):
+    """
+    Panel de control avanzado para el dueño: Cuadre y Auditoría Visual.
+    """
+    tenant = getattr(request, 'tenant', None) or request.user.organization
+    
+    if not request.user.is_owner and not request.user.is_superuser:
+        messages.error(request, "Acceso denegado.")
+        return redirect('core:dashboard')
+        
+    today = timezone.now().date()
+    now_time = timezone.now().time()
+    
+    # 1. Ranking de Barberos (Hoy)
+    # Contamos transacciones por usuario hoy
+    barber_stats = User.objects.filter(
+        organization=tenant,
+        is_active=True
+    ).filter(
+        Q(is_owner=True) | Q(is_staff_member=True)
+    ).annotate(
+        total_stamps=Count('performed_audit_logs', filter=Q(performed_audit_logs__action='STAMP_ADD', performed_audit_logs__created_at__date=today)),
+        total_points=Count('performed_audit_logs', filter=Q(performed_audit_logs__action='POINTS_ADD', performed_audit_logs__created_at__date=today)),
+    ).order_by('-total_stamps')
+
+    # 2. Semáforo de Alertas (Lógica de Auditoría)
+    alerts = []
+    
+    # A. Alerta fuera de horario
+    logs_off_hours = AuditLog.objects.filter(
+        organization=tenant,
+        created_at__date=today
+    ).filter(
+        Q(created_at__time__lt=tenant.opening_time) | 
+        Q(created_at__time__gt=tenant.closing_time)
+    ).select_related('user', 'customer')
+    
+    for log in logs_off_hours:
+        alerts.append({
+            'type': 'DANGER',
+            'icon': 'fas fa-clock',
+            'title': 'Actividad fuera de horario',
+            'message': f"{log.user} registró {log.get_action_display()} a las {log.created_at.strftime('%H:%M')}",
+            'log': log
+        })
+        
+    # B. Alerta de registros rápidos (Sucesión sospechosa)
+    # Buscamos si el mismo barbero puso 2+ sellos en menos de 10 min
+    recent_logs = AuditLog.objects.filter(
+        organization=tenant,
+        created_at__date=today,
+        action__in=['STAMP_ADD', 'POINTS_ADD']
+    ).order_by('user', 'created_at')
+    
+    prev_log = None
+    for log in recent_logs:
+        if prev_log and prev_log.user == log.user:
+            time_diff = (log.created_at - prev_log.created_at).total_seconds() / 60
+            if time_diff < 10: # Menos de 10 minutos
+                alerts.append({
+                    'type': 'WARNING',
+                    'icon': 'fas fa-bolt',
+                    'title': 'Registros muy seguidos',
+                    'message': f"{log.user} registró dos acciones en {int(time_diff)} min.",
+                    'log': log
+                })
+        prev_log = log
+
+    context = {
+        'barber_stats': barber_stats,
+        'alerts': alerts,
+        'title': 'Panel de Control - Cuadre y Auditoría',
+        'today': today,
+        'tenant': tenant
+    }
+    return render(request, 'core/owner_dashboard.html', context)

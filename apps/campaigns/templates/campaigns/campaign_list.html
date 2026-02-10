@@ -55,16 +55,22 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        {% if campaign.status == 'DRAFT' %}
                         <div class="btn-group">
-                            <a href="#" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="fas fa-edit"></i></a>
-                            <a href="{% url 'campaigns:campaign_send' campaign.pk %}" class="btn btn-sm btn-success" title="Enviar Ahora" onclick="return confirm('¿Seguro que deseas enviar esta campaña a todos los clientes del segmento?');">
-                                <i class="fas fa-paper-plane"></i>
-                            </a>
+                            {% if campaign.status == 'DRAFT' %}
+                                <a href="{% url 'campaigns:campaign_edit' campaign.pk %}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="fas fa-edit"></i></a>
+                                <a href="{% url 'campaigns:campaign_send' campaign.pk %}" class="btn btn-sm btn-success" title="Iniciar Envío">
+                                    <i class="fas fa-play me-1"></i> Iniciar
+                                </a>
+                            {% elif campaign.status == 'SCHEDULED' %}
+                                <a href="{% url 'campaigns:campaign_detail' campaign.pk %}" class="btn btn-sm btn-info text-white" title="Continuar Envío">
+                                    <i class="fas fa-step-forward me-1"></i> Continuar
+                                </a>
+                            {% elif campaign.status == 'SENT' %}
+                                <a href="{% url 'campaigns:campaign_detail' campaign.pk %}" class="btn btn-sm btn-outline-info" title="Ver Reporte">
+                                    <i class="fas fa-chart-bar me-1"></i> Reporte
+                                </a>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <a href="#" class="btn btn-sm btn-outline-info" title="Ver Reporte"><i class="fas fa-chart-bar"></i></a>
-                        {% endif %}
                     </td>
                 </tr>
                 {% empty %}

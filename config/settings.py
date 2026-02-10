@@ -62,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'apps.core.middleware.TenantMiddleware', # Custom middleware for tenant isolation
+    'apps.core.middleware.FeatureRestrictionMiddleware', # Global feature flag enforcement
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -77,6 +78,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'apps.customers.context_processors.birthday_celebrants',
             ],
         },
     },

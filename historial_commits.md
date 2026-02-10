@@ -4,6 +4,32 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| **Commit** | 2026-02-10 13:20:00 | - **Mejora Premium: WhatsApp con Editor de Mensajes y 6 Plantillas**
+    - Añadido **Editor de Mensajes (textarea)** en el modal de WhatsApp para personalización total.
+    - Ampliada la librería a **6 plantillas premium** (Puntos, Premios, Fidelización, Cumpleaños, Novedades, Gracias).
+    - Refactorizado JS para carga de plantillas en editor y envío codificado. |
+| **Commit** | 2026-02-10 13:15:00 | - **Mejora Premium: Perfil 360°, WA Marketing y ADN del Cliente**
+    - Implementado **WhatsApp Marketing** con botón flotante y plantillas dinámicas.
+    - Algoritmo de **ADN del Cliente**: Frecuencia, Servicio Favorito y Última Visita.
+    - Sistema de **Etiquetas (Tags)** de colores con gestión en creación/edición.
+    - UX: Visualización de tags en perfil y grid interactivo en formularios. |
+| **Backup** | 2026-02-10 13:00:00 | - **Punto de restauración antes de mejoras avanzadas de perfil**
+    - Respaldo previo a la implementación de WhatsApp, Estadísticas ADN y Etiquetas. |
+| **Backup** | 2026-02-10 12:55:00 | - **Módulo de Auditoría y Gestión Avanzada de Clientes**
+    - Implementado **Módulo de Auditoría y Logs** (Modelos, Vistas y Templates).
+    - Perfil de Cliente 360° con **Canje Directo** de premios acumulados.
+    - Acciones de eliminación con confirmación modal y registro en auditoría.
+    - Mejoras UX: nombres cliqueables en listado y visual de premios listos. |
+| 0a1b2c3 | 2026-02-09 23:30:00 | - **Mejora: Notificaciones Automáticas (WhatsApp/Email) para Engagement**
+    - Implementado Feature Flag `campaigns.auto_notifications` para control SaaS por Superadmin.
+    - Creado modelo `NotificationConfig` para gestionar API Keys de WhatsApp y plantillas personalizadas por negocio.
+    - Implementados Django Signals para disparar mensajes automáticos cuando falta 1 sello o se completa el premio.
+    - Creado comando de gestión `send_expiration_reminders` para avisos de vencimiento (7 días).
+    - Integración con API de WhatsApp local (estilo UltraMsg). |
+| 428abe2 | 2026-02-09 23:05:00 | - **Mejora: Soporte para múltiples promociones, colores personalizados y vinculación con Premios**
+    - Implementado sistema para definir y gestionar múltiples promociones activas simultáneamente.
+    - Añadida funcionalidad para personalizar colores de la interfaz por promoción.
+    - Establecida vinculación directa entre promociones y premios disponibles. |
 | 351624f | 2026-02-09 22:35:00 | Mejora: vigencia de tarjetas y reglas de 'Sello Doble' |
 | b6fd59e | 2026-02-09 22:15:00 | Mejora: modo kiosko (QR) y confirmación de sellos escaneados |
 | 1da0ca2 | 2026-02-09 22:00:00 | Mejora: paginación AJAX en el historial de clientes |

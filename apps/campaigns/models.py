@@ -60,3 +60,56 @@ class CampaignLog(TenantAwareModel):
     class Meta:
         verbose_name = "Log de Envío"
         verbose_name_plural = "Logs de Envíos"
+
+class CampaignTemplate(TenantAwareModel):
+    """
+    Plantillas de mensajes para campañas.
+    """
+    name = models.CharField(max_length=100, verbose_name="Nombre de la Plantilla")
+    content = models.TextField(verbose_name="Contenido del Mensaje")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Plantilla de Campaña"
+        verbose_name_plural = "Plantillas de Campañas"
+
+    def __str__(self):
+        return self.name
+class NotificationConfig(TenantAwareModel):
+    """
+    Configuración de notificaciones automáticas por negocio.
+    """
+    # WhatsApp Settings
+    whatsapp_api_url = models.URLField(max_length=500, blank=True, verbose_name="WhatsApp API URL", help_text="Ej: https://api.ultramsg.com/instance123/messages/chat")
+    whatsapp_token = models.CharField(max_length=255, blank=True, verbose_name="WhatsApp Token")
+    
+    # Email Settings
+    email_enabled = models.BooleanField(default=False, verbose_name="Habilitar Emails")
+    
+    # Templates (Engagement)
+    template_one_left = models.TextField(
+        default="Hola {nombre}, ¡ya casi lo tienes! 🚀 Solo te falta 1 sello para completar tu tarjeta en {negocio}. ¡Te esperamos pronto!",
+        verbose_name="Plantilla: Falta 1 sello"
+    )
+    template_completed = models.TextField(
+        default="¡Felicidades {nombre}! ✨ Has completado tu tarjeta en {negocio}. Tienes un {premio} esperándote. ¡Ven por él!",
+        verbose_name="Plantilla: Tarjeta Completada"
+    )
+    template_expiring = models.TextField(
+        default="Hola {nombre}, tu tarjeta de sellos en {negocio} vencerá en 7 días. 🔥 ¡No pierdas tus avances y visítanos pronto!",
+        verbose_name="Plantilla: Por Vencer (7 días)"
+    )
+    
+    # Birthday Automation
+    birthday_enabled = models.BooleanField(default=False, verbose_name="Habilitar Saludos de Cumpleaños")
+    birthday_template = models.TextField(
+        default="¡Feliz cumpleaños {nombre}! 🎉🎂 De parte de todo el equipo de {negocio} te deseamos lo mejor. ¡Ven hoy y recibe un descuento especial! 🎁",
+        verbose_name="Plantilla: Cumpleaños"
+    )
+
+    class Meta:
+        verbose_name = "Configuración de Notificaciones"
+        verbose_name_plural = "Configuraciones de Notificaciones"
+
+    def __str__(self):
+        return f"Configuración: {self.organization.name}"
