@@ -2,10 +2,13 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncDate
+from django.http import JsonResponse
+from datetime import timedelta
 from apps.customers.models import Customer
 from apps.loyalty.models import PointTransaction
-from apps.stamps.models import StampCard
+from apps.stamps.models import StampCard, StampTransaction, StampPromotion
 
 @login_required
 def dashboard_dispatch(request):
@@ -70,3 +73,42 @@ def tenant_dashboard(request):
         'title': f"Dashboard - {tenant.name}"
     }
     return render(request, 'core/dashboard.html', context)
+
+@login_required
+def dashboard_stats_api(request):
+    """API que devuelve datos para los gráficos del dashboard"""
+    tenant = getattr(request, 'tenant', None) or request.user.organization
+    last_30_days = timezone.now().date() - timedelta(days=30)
+    
+    # 1. Crecimiento de Clientes (Línea)
+    customer_growth = Customer.objects.filter(
+        organization=tenant,
+        created_at__date__gte=last_30_days
+    ).annotate(
+        date=TruncDate('created_at')
+    ).values('date').annotate(
+        count=Count('id')
+    ).order_by('date')
+    
+    # 2. Actividad de Sellos (Barras)
+    stamp_activity = StampTransaction.objects.filter(
+        organization=tenant,
+        created_at__date__gte=last_30_days
+    ).annotate(
+        date=TruncDate('created_at')
+    ).values('date', 'action').annotate(
+        count=Sum('quantity')
+    ).order_by('date')
+    
+    # 3. Popularidad de Promociones (Pastel)
+    promo_stats = StampPromotion.objects.filter(
+        organization=tenant
+    ).annotate(
+        card_count=Count('cards')
+    ).values('name', 'card_count').order_by('-card_count')[:5]
+    
+    return JsonResponse({
+        'customer_growth': list(customer_growth),
+        'stamp_activity': list(stamp_activity),
+        'promo_stats': list(promo_stats)
+    })

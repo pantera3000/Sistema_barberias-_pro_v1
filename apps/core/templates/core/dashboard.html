@@ -80,7 +80,42 @@
     </div>
 </div>
 
-<div class="row">
+<!-- Charts Section -->
+<div class="row mb-4">
+    <div class="col-lg-8 mb-4 mb-lg-0">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i> Crecimiento de Clientes (Últimos 30 días)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="growthChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie text-info me-2"></i> Promociones Populares</h6>
+            </div>
+            <div class="card-body d-flex align-items-center">
+                <canvas id="promoChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-bar text-success me-2"></i> Actividad de Sellos (Otorgados vs Canjeados)</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="activityChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- Recent Activity -->
     <div class="col-lg-8 mb-4">
         <div class="card shadow-sm h-100">
@@ -156,4 +191,109 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch("{% url 'core:dashboard_stats_api' %}")
+            .then(response => response.json())
+            .then(data => {
+                renderGrowthChart(data.customer_growth);
+                renderPromoChart(data.promo_stats);
+                renderActivityChart(data.stamp_activity);
+            });
+    });
+
+    function renderGrowthChart(stats) {
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: stats.map(s => s.date),
+                datasets: [{
+                    label: 'Nuevos Clientes',
+                    data: stats.map(s => s.count),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { stepSize: 1, precision: 0 } 
+                    } 
+                }
+            }
+        });
+    }
+
+    function renderPromoChart(stats) {
+        const ctx = document.getElementById('promoChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: stats.map(s => s.name),
+                datasets: [{
+                    data: stats.map(s => s.card_count),
+                    backgroundColor: ['#0d6efd', '#0dcaf0', '#198754', '#ffc107', '#6c757d']
+                }]
+            },
+            options: {
+                responsive: true,
+                aspectRatio: 1.5,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    function renderActivityChart(stats) {
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        
+        // Agrupar datos por fecha para el gráfico de barras comparativo
+        const dates = [...new Set(stats.map(s => s.date))];
+        const addData = dates.map(d => {
+            const item = stats.find(s => s.date === d && s.action === 'ADD');
+            return item ? item.count : 0;
+        });
+        const redeemData = dates.map(d => {
+            const item = stats.find(s => s.date === d && s.action === 'REDEEM');
+            return item ? Math.abs(item.count) : 0;
+        });
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Sellos Otorgados',
+                        data: addData,
+                        backgroundColor: '#0d6efd'
+                    },
+                    {
+                        label: 'Canjes Realizados',
+                        data: redeemData,
+                        backgroundColor: '#198754'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    } 
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}
