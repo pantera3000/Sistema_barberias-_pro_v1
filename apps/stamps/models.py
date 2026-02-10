@@ -48,6 +48,26 @@ class StampCard(TenantAwareModel):
         verbose_name_plural = "Tarjetas de Sellos"
         # Quitamos unique_together para permitir acumulación de múltiples premios (tarjetas completadas no canjeadas)
 
+    @property
+    def is_expired(self):
+        """Verifica si la tarjeta ha expirado según la configuración del tenant"""
+        months = getattr(self.organization, 'stamps_expiration_months', 0)
+        if months <= 0:
+            return False
+        
+        from django.utils import timezone
+        from dateutil.relativedelta import relativedelta
+        return timezone.now() > self.created_at + relativedelta(months=months)
+
+    @property
+    def expiration_date(self):
+        """Retorna la fecha exacta de expiración"""
+        months = getattr(self.organization, 'stamps_expiration_months', 0)
+        if months <= 0:
+            return None
+        from dateutil.relativedelta import relativedelta
+        return self.created_at + relativedelta(months=months)
+
     def __str__(self):
         return f"{self.customer} - {self.current_stamps}/{self.promotion.total_stamps_needed}"
 

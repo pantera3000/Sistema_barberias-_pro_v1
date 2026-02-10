@@ -74,8 +74,68 @@
                                         <div class="col-md-8">
                                             <div class="alert alert-info py-2 px-3 mb-0 border-0 small">
                                                 <i class="fas fa-info-circle me-1"></i>
-                                                El dueño del negocio y superadministradores **pueden saltar** esta restricción. Solo aplica para el personal.
+                                                El dueño y superadmins pueden saltar esta restricción.
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Expiración -->
+                            <div class="col-12 mt-4">
+                                <h5 class="fw-bold text-primary mb-3">Vigencia y Expiración</h5>
+                                <hr class="opacity-10 mt-0">
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="p-3 bg-white border rounded-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold small text-muted text-uppercase">Vigencia de Tarjeta (Meses)</label>
+                                            {{ form.stamps_expiration_months }}
+                                            <p class="small text-muted mt-2 mb-0">Las tarjetas se marcarán como "Expiradas" después de este tiempo (0 = nunca vencen).</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sello Doble -->
+                            <div class="col-12 mt-4">
+                                <h5 class="fw-bold text-primary mb-3">Días de Sello Doble (Reglas Especiales)</h5>
+                                <hr class="opacity-10 mt-0">
+                            </div>
+
+                            <div class="col-md-12">
+                                <div class="p-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                                    <p class="small fw-bold text-primary text-uppercase mb-3"><i class="fas fa-bolt me-1"></i> Selecciona los días de promoción</p>
+                                    <div class="d-flex flex-wrap gap-3">
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_mon }}
+                                            <label class="form-check-label ms-2">Lun</label>
+                                        </div>
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_tue }}
+                                            <label class="form-check-label ms-2">Mar</label>
+                                        </div>
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_wed }}
+                                            <label class="form-check-label ms-2">Mie</label>
+                                        </div>
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_thu }}
+                                            <label class="form-check-label ms-2">Jue</label>
+                                        </div>
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_fri }}
+                                            <label class="form-check-label ms-2">Vie</label>
+                                        </div>
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_sat }}
+                                            <label class="form-check-label ms-2">Sab</label>
+                                        </div>
+                                        <div class="form-check form-switch card-check p-0">
+                                            {{ form.double_stamp_sun }}
+                                            <label class="form-check-label ms-2">Dom</label>
                                         </div>
                                     </div>
                                 </div>

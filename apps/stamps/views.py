@@ -102,6 +102,9 @@ def card_list(request):
     from django.utils import timezone
     today = timezone.now().date()
     
+    # Filtrar tarjetas expiradas del listado general (en memoria ya que depends de una property)
+    cards = [c for c in cards if not c.is_expired]
+
     # Agrupar tarjetas por cliente
     customer_groups = {}
     for card in cards:
@@ -120,14 +123,13 @@ def card_list(request):
             if card.redemption_requested:
                 customer_groups[customer_id]['requested_count'] += 1
         else:
-            # Asumimos que solo hay una activa por promoción (o tomamos la más reciente)
             if not customer_groups[customer_id]['active_card'] or card.last_stamp_at > customer_groups[customer_id]['active_card'].last_stamp_at:
                 customer_groups[customer_id]['active_card'] = card
         
         if card.last_stamp_at > customer_groups[customer_id]['last_activity']:
             customer_groups[customer_id]['last_activity'] = card.last_stamp_at
 
-    # Convertir a lista y ordenar: Primero los que tienen solicitudes, luego por actividad
+    # ... sorted algorithm stays the same ...
     grouped_list = sorted(
         customer_groups.values(), 
         key=lambda x: (x['requested_count'] > 0, x['last_activity']), 
@@ -135,9 +137,9 @@ def card_list(request):
     )
 
     stats = {
-        'total_active': cards.filter(is_completed=False).count(),
-        'completed': cards.filter(is_completed=True, redemption_requested=False).count(),
-        'requested': cards.filter(redemption_requested=True).count(),
+        'total_active': sum(1 for c in cards if not c.is_completed),
+        'completed': sum(1 for c in cards if c.is_completed and not c.redemption_requested),
+        'requested': sum(1 for c in cards if c.redemption_requested),
         'stamps_today': StampTransaction.objects.filter(organization=request.tenant, created_at__date=today, action='ADD').count()
     }
 
@@ -190,16 +192,39 @@ def add_stamp_customer(request, customer_id):
                 messages.warning(request, f"🛡️ Anti-Fraude: Espera {minutes_left} min para dar otro sello a este cliente.")
                 return redirect('stamps:card_list')
 
+        # --- Lógica de Sello Doble ---
+        quantity = 1
+        weekday = timezone.now().weekday()
+        double_days_map = {
+            0: 'double_stamp_mon', 1: 'double_stamp_tue', 2: 'double_stamp_wed',
+            3: 'double_stamp_thu', 4: 'double_stamp_fri', 5: 'double_stamp_sat',
+            6: 'double_stamp_sun'
+        }
+        if getattr(request.tenant, double_days_map[weekday], False):
+            quantity = 2
+
         with transaction.atomic():
-            card, created = StampCard.objects.get_or_create(
+            # Buscar tarjeta activa que NO esté completada ni canjeada
+            card = StampCard.objects.filter(
                 customer=customer,
                 promotion=active_promo,
                 is_completed=False,
-                is_redeemed=False,
-                defaults={'current_stamps': 0}
-            )
+                is_redeemed=False
+            ).first()
             
-            card.current_stamps += 1
+            # Si existe pero está expirada, la "cerramos" implícitamente creando una nueva
+            if card and card.is_expired:
+                card = None
+                
+            if not card:
+                card = StampCard.objects.create(
+                    customer=customer,
+                    promotion=active_promo,
+                    organization=request.tenant,
+                    current_stamps=0
+                )
+            
+            card.current_stamps += quantity
             if card.current_stamps >= active_promo.total_stamps_needed:
                 card.is_completed = True
                 messages.success(request, f"¡Tarjeta completada para {customer.full_name}!")
@@ -209,10 +234,14 @@ def add_stamp_customer(request, customer_id):
                 organization=request.tenant,
                 card=card,
                 action='ADD',
-                quantity=1,
+                quantity=quantity,
                 performed_by=request.user
             )
-            messages.success(request, "Sello añadido correctamente.")
+            
+            msg = f"Sello añadido correctamente."
+            if quantity == 2:
+                msg = f"⚡ ¡Sello DOBLE aplicado! ({quantity} sellos añadidos)."
+            messages.success(request, msg)
             return redirect('stamps:card_list')
 
     # GET: Mostrar pantalla de confirmación (útil para escaneo QR)
@@ -255,6 +284,9 @@ def my_stamps(request):
         return render(request, 'stamps/no_customer_profile.html')
         
     cards = StampCard.objects.filter(customer=customer, is_redeemed=False).select_related('promotion').order_by('-current_stamps')
+    
+    # Filtrar expiradas
+    cards = [c for c in cards if not c.is_expired]
     
     return render(request, 'stamps/my_stamps.html', {
         'cards': cards,

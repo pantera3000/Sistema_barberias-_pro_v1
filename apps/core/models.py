@@ -38,6 +38,16 @@ class Organization(models.Model):
     
     # Configuración de Seguridad
     stamp_lock_hours = models.PositiveIntegerField(default=2, verbose_name="Horas de bloqueo entre sellos")
+    stamps_expiration_months = models.PositiveIntegerField(default=0, verbose_name="Meses de vigencia de tarjetas (0 = sin límite)")
+    
+    # Días de Sello Doble
+    double_stamp_mon = models.BooleanField(default=False, verbose_name="Lunes Sello Doble")
+    double_stamp_tue = models.BooleanField(default=False, verbose_name="Martes Sello Doble")
+    double_stamp_wed = models.BooleanField(default=False, verbose_name="Miércoles Sello Doble")
+    double_stamp_thu = models.BooleanField(default=False, verbose_name="Jueves Sello Doble")
+    double_stamp_fri = models.BooleanField(default=False, verbose_name="Viernes Sello Doble")
+    double_stamp_sat = models.BooleanField(default=False, verbose_name="Sábado Sello Doble")
+    double_stamp_sun = models.BooleanField(default=False, verbose_name="Domingo Sello Doble")
     
     # Estado
     is_active = models.BooleanField(default=True, verbose_name="Activo")
@@ -47,6 +57,18 @@ class Organization(models.Model):
     class Meta:
         verbose_name = "Organización"
         verbose_name_plural = "Organizaciones"
+
+    @property
+    def is_double_stamp_day(self):
+        """Verifica si hoy es un día de sello doble"""
+        from django.utils import timezone
+        weekday = timezone.now().weekday()
+        days_map = {
+            0: self.double_stamp_mon, 1: self.double_stamp_tue, 2: self.double_stamp_wed,
+            3: self.double_stamp_thu, 4: self.double_stamp_fri, 5: self.double_stamp_sat,
+            6: self.double_stamp_sun
+        }
+        return days_map.get(weekday, False)
 
     def __str__(self):
         return self.name
