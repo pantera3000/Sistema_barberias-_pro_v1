@@ -4,6 +4,8 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| 844258c | 2026-02-09 21:40:00 | Mejora: auditoría de sellos y protección anti-fraude (Time-Lock) |
+| 04f3ea4 | 2026-02-09 21:25:00 | Mejora: buscador AJAX real-time con debounce en lista de tarjetas |
 | 1b332ca | 2026-02-09 21:05:00 | Fix: eliminada restricción UNIQUE para acumulación infinita |
 | df4fb8b | 2026-02-09 21:00:00 | Mejora: vista de tarjetas agrupada por cliente y acumulación |
 | e5c3ed0 | 2026-02-09 20:50:00 | Mejora: dashboard visual con gráficos interactivos (Chart.js) |
@@ -20,3 +22,4 @@ Lista de todos los puntos de restauración creados en este proyecto.
 | 42d810c | 2026-02-09 10:14:55 | Mejora: Fecha de nacimiento parcial (Año opcional) en Clientes |
 | 67aa273 | 2026-02-09 09:58:24 | Registro: Creación del archivo de historial de commits |
 | f36dede | 2026-02-09 09:55:28 | Checkpoint: Fase 13 completada y datos demo cargados |
+2. 🛡️ Seguridad y Anti-Fraude (Time-Lock)

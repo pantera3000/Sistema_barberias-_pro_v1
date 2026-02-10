@@ -6,6 +6,7 @@
                 <th>Acción</th>
                 <th>Cantidad</th>
                 <th>Realizado por</th>
+                <th class="text-end">Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -28,6 +29,16 @@
                 <td><span class="fw-bold">{{ tx.quantity }}</span></td>
                 <td>
                     <div class="small">{{ tx.performed_by.get_full_name|default:tx.performed_by.username }}</div>
+                </td>
+                <td class="text-end">
+                    {% if tx.action == 'ADD' or tx.action == 'REDEEM' %}
+                    <form action="{% url 'stamps:undo_transaction' tx.pk %}" method="post" onsubmit="return confirm('¿Deshacer esta acción?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Deshacer">
+                            <i class="fas fa-undo-alt"></i>
+                        </button>
+                    </form>
+                    {% endif %}
                 </td>
             </tr>
             {% empty %}

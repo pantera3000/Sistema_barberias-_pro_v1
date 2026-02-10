@@ -282,3 +282,37 @@ def redeem_card(request, pk):
     
     messages.success(request, "Recompensa canjeada exitosamente. Se ha archivado la tarjeta.")
     return redirect('stamps:card_list')
+
+@login_required
+def undo_transaction(request, pk):
+    """Deshacer una transacción reciente (solo staff/dueño)"""
+    if request.method == 'POST':
+        tx = get_object_or_404(StampTransaction, pk=pk, organization=request.tenant)
+        
+        # Seguridad: Solo transacciones de las últimas 24 horas
+        from django.utils import timezone
+        from datetime import timedelta
+        if (timezone.now() - tx.created_at) > timedelta(hours=24):
+            messages.error(request, "Esta transacción es muy antigua para ser deshecha.")
+            return redirect('stamps:card_list')
+
+        card = tx.card
+        with transaction.atomic():
+            if tx.action == 'ADD':
+                if card.is_redeemed:
+                    messages.error(request, "No se puede deshacer un sello de una tarjeta ya canjeada.")
+                    return redirect('stamps:card_list')
+                
+                card.current_stamps = max(0, card.current_stamps - tx.quantity)
+                card.is_completed = False
+                card.save()
+                
+            elif tx.action == 'REDEEM':
+                card.is_redeemed = False
+                card.redemption_requested = False
+                card.save()
+
+            tx.delete() # Borramos el error del historial
+            messages.success(request, "Acción deshecha correctamente.")
+            
+    return redirect('stamps:card_list')
