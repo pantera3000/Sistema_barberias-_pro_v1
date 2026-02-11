@@ -11,7 +11,13 @@
             </h2>
             <p class="text-muted mb-0">Gestiona las solicitudes enviadas por tus clientes desde su móvil.</p>
         </div>
-        <div class="col-auto">
+        <div class="col-auto d-flex align-items-center gap-3">
+            <div class="search-box">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" id="qrSearchInput" class="form-control border-start-0" placeholder="Buscar cliente o teléfono..." style="min-width: 250px;">
+                </div>
+            </div>
             <div class="badge bg-primary px-3 py-2 rounded-pill">
                 <span id="qrPageCount">{{ pending_count }}</span> Pendientes
             </div>
@@ -59,13 +65,20 @@
 </div>
 
 <script>
-    function loadPendingRequests() {
+    let qrSearchTimeout = null;
+
+    function loadPendingRequests(query = '') {
         const tableBody = document.getElementById('qrRequestsTableBody');
         const pageCount = document.getElementById('qrPageCount');
         const emptyRow = document.getElementById('emptyRow');
         const loadingRow = document.getElementById('loadingRow');
 
-        fetch("{% url 'stamps:get_pending_requests' %}")
+        let url = "{% url 'stamps:get_pending_requests' %}";
+        if (query) {
+            url += `?q=${encodeURIComponent(query)}`;
+        }
+
+        fetch(url)
             .then(response => response.json())
             .then(data => {
                 loadingRow.style.display = 'none';
@@ -76,17 +89,19 @@
 
                 if (data.requests.length === 0) {
                     emptyRow.style.display = 'table-row';
-                    pageCount.innerText = "0";
+                    if (!query) pageCount.innerText = "0";
                 } else {
                     emptyRow.style.display = 'none';
-                    pageCount.innerText = data.requests.length;
+                    if (!query) pageCount.innerText = data.requests.length;
 
                     data.requests.forEach(req => {
                         const tr = document.createElement('tr');
                         tr.id = `request-row-${req.id}`;
                         tr.innerHTML = `
                             <td class="ps-4">
-                                <div class="fw-bold text-dark">${req.customer_name}</div>
+                                <a href="/app/customers/${req.customer_id}/" class="text-decoration-none">
+                                    <div class="fw-bold text-dark hover-opacity">${req.customer_name}</div>
+                                </a>
                             </td>
                             <td>
                                 <div class="small"><i class="fab fa-whatsapp text-success me-1"></i> ${req.customer_phone}</div>
@@ -144,8 +159,22 @@
         });
     }
 
-    // Polling cada 10 segundos en esta página
-    setInterval(loadPendingRequests, 10000);
+    // Buscador con debounce
+    document.getElementById('qrSearchInput').addEventListener('input', function(e) {
+        clearTimeout(qrSearchTimeout);
+        const query = e.target.value;
+        qrSearchTimeout = setTimeout(() => {
+            loadPendingRequests(query);
+        }, 300);
+    });
+
+    // Polling cada 10 segundos en esta página (solo si no hay búsqueda activa)
+    setInterval(() => {
+        const query = document.getElementById('qrSearchInput').value;
+        if (!query) {
+            loadPendingRequests();
+        }
+    }, 10000);
     loadPendingRequests();
 </script>
 {% endblock %}

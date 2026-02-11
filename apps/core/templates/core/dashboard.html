@@ -1,195 +1,497 @@
-
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Dashboard - {{ user.organization.name }}{% endblock %}
+{% block title %}Panel Principal - {{ user.organization.name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Bienvenido, {{ user.first_name }}</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary">Compartir</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary">Exportar</button>
+<style>
+    :root {
+        --dash-primary: #6366f1;
+        --dash-secondary: #a855f7;
+        --dash-success: #10b981;
+        --dash-warning: #f59e0b;
+        --dash-danger: #ef4444;
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.4);
+    }
+
+    .dashboard-container {
+        padding: 1.5rem 0;
+    }
+
+    /* Refined Welcome Header */
+    .dashboard-header {
+        background: white;
+        border-radius: 24px;
+        padding: 1.75rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .greeting-title {
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+        letter-spacing: -0.025em;
+    }
+
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 0.4rem 1rem;
+        border-radius: 100px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* KPI Cards Premium */
+    .kpi-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(8px);
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid var(--glass-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1);
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .kpi-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        transition: transform 0.3s ease;
+    }
+
+    .kpi-card:hover .kpi-icon {
+        transform: scale(1.1) rotate(-5deg);
+    }
+
+    .kpi-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.5rem;
+    }
+
+    .kpi-value {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Birthday Widget Integrated */
+    .birthday-section {
+        background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%);
+        border: 1px solid #fde68a;
+        border-radius: 20px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    /* Chart & Activity Layout */
+    .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 992px) {
+        .main-grid { grid-template-columns: 1fr; }
+    }
+
+    .content-card {
+        background: white;
+        border-radius: 24px;
+        padding: 1.5rem;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    }
+
+    .card-title-dash {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    /* Ranking Table Tiny */
+    .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .ranking-row {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        transition: background 0.2s;
+    }
+
+    .ranking-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--dash-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.8rem;
+        margin-right: 0.75rem;
+    }
+
+    /* Quick Shortcuts Overlay */
+    .shortcut-btn {
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+        color: white;
+        text-decoration: none;
+        transition: filter 0.2s;
+    }
+
+    .shortcut-btn:hover {
+        filter: brightness(1.1);
+        color: white;
+    }
+
+    .bg-indigo-600 { background-color: #4f46e5; }
+    .bg-emerald-600 { background-color: #059669; }
+</style>
+
+<div class="dashboard-container">
+    <!-- Birthday Celebration Banner (Conditional) -->
+    {% if has_birthday_today %}
+    <div class="birthday-section animate__animated animate__fadeIn">
+        <div class="fs-2">🎂</div>
+        <div class="flex-grow-1">
+            <h6 class="fw-bold mb-1" style="color: #92400e;">¡Día de fiesta!</h6>
+            <p class="small mb-0 text-muted">Existen <strong>{{ birthday_celebrants.count }}</strong> clientes de cumpleaños hoy. 
+                <a href="{% url 'customers:customer_list' %}?birthday=today" class="fw-bold text-decoration-none" style="color: #b45309;">Ver lista <i class="fas fa-arrow-right ms-1"></i></a>
+            </p>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
-            <i class="fas fa-calendar"></i> Esta semana
+        <button class="btn btn-sm btn-outline-warning border-0 rounded-circle" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
         </button>
     </div>
-</div>
+    {% endif %}
 
-<!-- Stats Cards -->
-<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">
-    <div class="col">
-        <div class="card h-100 shadow-sm border-start border-4 border-primary">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="card-title text-muted mb-0">Clientes Totales</h6>
-                    <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle p-2">
-                        <i class="fas fa-users"></i>
+    <!-- Top Header / Navigation -->
+    <header class="dashboard-header animate__animated animate__slideInDown">
+        <div>
+            <span class="status-badge mb-2 d-inline-block shadow-sm">
+                <i class="fas fa-circle text-success me-1 small"></i> En línea - {{ user.organization.name }}
+            </span>
+            <h2 class="greeting-title" id="greetingText">¡Hola, {{ user.first_name }}!</h2>
+            <p class="text-muted small mb-0">Revisa el pulso de tu barbería en tiempo real.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm border-0" onclick="copyShareLink()">
+                <i class="fas fa-share-alt me-2"></i> Compartir
+            </button>
+            <button class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm border-0" data-bs-toggle="modal" data-bs-target="#dailyReportModal" onclick="loadDailyActivity()">
+                <i class="fas fa-list-ul me-2"></i> Reporte Hoy
+            </button>
+            <button class="btn btn-outline-secondary rounded-circle shadow-sm border-0 bg-light" title="Ajustes Dashboard" data-bs-toggle="dropdown">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg" style="border-radius: 15px;">
+                <li><a class="dropdown-item py-2" href="{% url 'core:tenant_settings' %}"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item py-2 text-primary" href="javascript:location.reload()"><i class="fas fa-sync me-2"></i> Refrescar datos</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- KPI Bento Grid -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="kpi-label">Clientes Totales</div>
+                <div class="kpi-value">{{ total_customers }}</div>
+                <div class="small fw-bold text-success">
+                    <i class="fas fa-trending-up me-1"></i> +{{ new_customers_today }} hoy
+                </div>
+            </div>
+        </div>
+        {% if user.has_feature_reports %}
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="kpi-label">Recaudación Est.</div>
+                <div class="kpi-value">{{ user.organization.currency }} {{ estimated_revenue }}</div>
+                <div class="progress mt-1" style="height: 6px; border-radius: 10px;">
+                    <div class="progress-bar bg-success" style="width: 75%"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if user.has_feature_points or user.has_feature_stamps %}
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div class="kpi-label">Retención</div>
+                <div class="kpi-value">{{ retention_rate }}%</div>
+                <div class="kpi-trend small text-muted">Basado en recurrencia</div>
+            </div>
+        </div>
+        {% endif %}
+        {% if user.has_feature_points %}
+        <div class="col-md-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4;">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="kpi-label">Puntos Hoy</div>
+                <div class="kpi-value">{{ points_today }}</div>
+                <div class="small text-muted">Interacción de fidelidad</div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-grid">
+        <!-- Center Column -->
+        <div class="d-flex flex-column gap-4">
+            <!-- Growth Chart -->
+            <div class="content-card">
+                <div class="card-title-dash">
+                    <span><i class="fas fa-chart-line text-primary me-2"></i> Crecimiento de Clientes</span>
+                </div>
+                <div style="height: 250px;">
+                    <canvas id="growthChart"></canvas>
+                </div>
+            </div>
+
+            {% if user.has_feature_points or user.has_feature_stamps %}
+            <!-- FIDELITY ACTIVITY CHART -->
+            <div class="content-card">
+                <div class="card-title-dash">
+                    <span><i class="fas fa-chart-bar text-success me-2"></i> Actividad de Fidelización</span>
+                </div>
+                <div style="height: 250px;">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Recent Activity Table -->
+            <div class="content-card">
+                <div class="card-title-dash">
+                    <span><i class="fas fa-history text-muted me-2"></i> Actividad Reciente</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle mb-0">
+                        <thead>
+                            <tr class="text-muted small" style="border-bottom: 1px solid #f1f5f9;">
+                                <th class="pb-3 fw-bold">CLIENTE</th>
+                                <th class="pb-3 fw-bold">ACCIÓN</th>
+                                <th class="pb-3 text-end fw-bold">TIEMPO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in recent_activity %}
+                            <tr>
+                                <td class="py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="ranking-avatar" style="background: #e2e8f0; color: #475569;">
+                                            {{ txn.customer.first_name|first }}
+                                        </div>
+                                        <div class="fw-bold small">{{ txn.customer.full_name }}</div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if txn.transaction_type == 'EARN' %}
+                                    <span class="badge bg-success-subtle text-success py-2 px-3 rounded-pill fw-bold" style="font-size: 0.65rem;">Ganó {{ txn.points }} pts</span>
+                                    {% else %}
+                                    <span class="badge bg-danger-subtle text-danger py-2 px-3 rounded-pill fw-bold" style="font-size: 0.65rem;">Canjeó {{ txn.points }} pts</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end text-muted small">{{ txn.created_at|timesince }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-5 text-muted small">No hay actividad reciente.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="d-flex flex-column gap-4">
+            <!-- Quick Actions Shortcuts -->
+            <div class="content-card p-4 bg-dark text-white border-0 shadow-lg shadow-primary-subtle" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+                <h6 class="fw-bold mb-4 d-flex align-items-center"><i class="fas fa-bolt text-warning me-2"></i> Atajos Rápidos</h6>
+                <div class="d-grid gap-3">
+                    <a href="{% url 'stamps:qr_scanner' %}" class="shortcut-btn bg-indigo-600 shadow-sm fw-bold">
+                        <i class="fas fa-camera d-block mb-2 fa-lg"></i> ESCANEAR QR
+                    </a>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'stamps:card_list' %}" class="btn btn-outline-light w-100 py-3 border-secondary rounded-4 small">
+                                <i class="fas fa-ticket-alt d-block mb-1"></i> Sellos
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-outline-light w-100 py-3 border-secondary rounded-4 small">
+                                <i class="fas fa-coins d-block mb-1"></i> Puntos
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <h3 class="fw-bold mb-1">{{ total_customers }}</h3>
-                <small class="text-success"><i class="fas fa-arrow-up"></i> {{ new_customers_today }} hoy</small>
             </div>
-        </div>
-    </div>
-    
-    <div class="col">
-        <div class="card h-100 shadow-sm border-start border-4 border-success">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="card-title text-muted mb-0">Puntos Emitidos (Hoy)</h6>
-                    <div class="icon-shape bg-success bg-opacity-10 text-success rounded-circle p-2">
-                        <i class="fas fa-star"></i>
-                    </div>
-                </div>
-                <h3 class="fw-bold mb-1">{{ points_today }}</h3>
-                <small class="text-muted">Fidelización activa</small>
-            </div>
-        </div>
-    </div>
 
-    <div class="col">
-        <div class="card h-100 shadow-sm border-start border-4 border-warning">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="card-title text-muted mb-0">Tarjetas Activas</h6>
-                    <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-circle p-2">
-                        <i class="fas fa-ticket-alt"></i>
+            <!-- Plan Status Usage -->
+            {% if usage_limits %}
+            <div class="content-card">
+                <h6 class="card-title-dash mb-3"><i class="fas fa-crown text-warning me-2"></i> Estado del Plan</h6>
+                <div class="mb-3">
+                    <div class="small fw-bold mb-2">Plan Actual: <span class="text-primary">{{ user.organization.plan.name|default:"Básico" }}</span></div>
+                </div>
+                
+                {% for limit in usage_limits %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold" style="font-size: 0.7rem;">{{ limit.get_limit_type_display }}</span>
+                        <span class="small text-muted" style="font-size: 0.7rem;">
+                            {{ limit.current_usage }} / {% if limit.limit_value == -1 %}∞{% else %}{{ limit.limit_value }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="progress" style="height: 8px; border-radius: 10px; background-color: #f1f5f9;">
+                        {% with percent=limit.usage_percentage %}
+                        <div class="progress-bar {% if percent >= 90 %}bg-danger{% elif percent >= 75 %}bg-warning{% else %}bg-primary{% endif %}" 
+                             role="progressbar" 
+                             style="width: {{ percent }}%;" 
+                             aria-valuenow="{{ limit.current_usage }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="{{ limit.limit_value }}"></div>
+                        {% endwith %}
                     </div>
                 </div>
-                <h3 class="fw-bold mb-1">{{ active_stamp_cards }}</h3>
-                <small class="text-muted">En progreso</small>
+                {% endfor %}
+                
+                <div class="text-center mt-3">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold" style="font-size: 0.6rem;" onclick="location.href='{% url 'core:tenant_settings' %}'">
+                        MEJORAR PLAN
+                    </button>
+                </div>
             </div>
-        </div>
-    </div>
+            {% endif %}
 
-    <div class="col">
-        <div class="card h-100 shadow-sm border-start border-4 border-info">
-            <div class="card-body">
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h6 class="card-title text-muted mb-0">Citas Hoy</h6>
-                    <div class="icon-shape bg-info bg-opacity-10 text-info rounded-circle p-2">
-                        <i class="fas fa-calendar-check"></i>
+            <!-- Staff Leaderboard -->
+            <div class="content-card">
+                <h6 class="card-title-dash mb-4">🏆 Top Staff de Hoy</h6>
+                <div class="ranking-list">
+                    {% for worker in staff_ranking %}
+                    <div class="ranking-row">
+                        <div class="ranking-avatar">
+                            {{ worker.first_name|first|default:worker.username|first }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold small">{{ worker.get_full_name|default:worker.username }}</div>
+                            <div class="text-muted" style="font-size: 10px;">{{ worker.role_display }}</div>
+                        </div>
+                        <div class="badge bg-primary rounded-pill">{{ worker.actions_today }}</div>
                     </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-muted small">Sin actividad aún.</div>
+                    {% endfor %}
                 </div>
-                <h3 class="fw-bold mb-1">0</h3>
-                <small class="text-muted">Próximamente</small>
             </div>
+
+            {% if user.has_feature_points or user.has_feature_stamps %}
+            <!-- Popular Promotions Pie -->
+            <div class="content-card">
+                <h6 class="card-title-dash">🎨 Distribución</h6>
+                <div style="height: 200px;">
+                    <canvas id="promoChart"></canvas>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
 
-<!-- Charts Section -->
-<div class="row mb-4">
-    <div class="col-lg-8 mb-4 mb-lg-0">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-line text-primary me-2"></i> Crecimiento de Clientes (Últimos 30 días)</h6>
+<!-- MODAL REPORTE RÁPIDO -->
+<div class="modal fade" id="dailyReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-0 p-4 pb-0">
+                <h5 class="fw-bold mb-0"><i class="fas fa-clipboard-list text-primary me-2"></i> Actividad de Hoy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="card-body">
-                <canvas id="growthChart" height="250"></canvas>
+            <div class="modal-body p-4">
+                <div id="report-loader" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted small mt-2">Cargando movimientos...</p>
+                </div>
+                <div id="report-content" class="d-none">
+                    <div class="table-responsive" style="max-height: 400px;">
+                        <table class="table table-hover align-middle">
+                            <thead class="sticky-top bg-white">
+                                <tr class="text-muted small">
+                                    <th>HORA</th>
+                                    <th>CLIENTE</th>
+                                    <th>ACCIÓN</th>
+                                    <th>VALOR</th>
+                                    <th>STAFF</th>
+                                </tr>
+                            </thead>
+                            <tbody id="daily-activity-table-body">
+                                <!-- Data via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-pie text-info me-2"></i> Promociones Populares</h6>
-            </div>
-            <div class="card-body d-flex align-items-center">
-                <canvas id="promoChart"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold"><i class="fas fa-chart-bar text-success me-2"></i> Actividad de Sellos (Otorgados vs Canjeados)</h6>
-            </div>
-            <div class="card-body">
-                <canvas id="activityChart" height="100"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-    <!-- Recent Activity -->
-    <div class="col-lg-8 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                <h6 class="mb-0 fw-bold">Actividad Reciente</h6>
-                <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-sm btn-link text-decoration-none">Ver todo</a>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Hora</th>
-                            <th>Cliente</th>
-                            <th>Acción</th>
-                            <th class="text-end">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for txn in recent_activity %}
-                        <tr>
-                            <td>{{ txn.created_at|date:"H:i" }}</td>
-                            <td class="fw-bold">{{ txn.customer.full_name }}</td>
-                            <td>
-                                {% if txn.transaction_type == 'EARN' %}
-                                <span class="badge bg-success-subtle text-success">Ganó Puntos</span>
-                                {% elif txn.transaction_type == 'REDEEM' %}
-                                <span class="badge bg-danger-subtle text-danger">Canjeó Puntos</span>
-                                {% else %}
-                                <span class="badge bg-secondary-subtle text-secondary">Ajuste</span>
-                                {% endif %}
-                                <small class="text-muted d-block">{{ txn.description|truncatechars:30 }}</small>
-                            </td>
-                            <td class="text-end fw-bold {% if txn.transaction_type == 'REDEEM' %}text-danger{% else %}text-success{% endif %}">
-                                {% if txn.transaction_type == 'REDEEM' %}-{% else %}+{% endif %}{{ txn.points }}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">No hay actividad reciente.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="col-lg-4 mb-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white py-3">
-                <h6 class="mb-0 fw-bold">Acciones Rápidas</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="{% url 'customers:customer_create' %}" class="btn btn-outline-primary text-start p-3">
-                        <i class="fas fa-user-plus me-3 fa-lg"></i> Nuevo Cliente
+            <div class="modal-footer border-0 p-4 pt-0 d-flex justify-content-between">
+                <p class="text-muted small mb-0"><i class="fas fa-info-circle me-1"></i> Resumen de transacciones del día actual.</p>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'core:export_daily_report' %}" class="btn btn-emerald-600 text-white rounded-pill px-3 fw-bold shadow-sm border-0" style="background-color: #059669;">
+                        <i class="fas fa-file-csv me-2"></i> Descargar CSV
                     </a>
-                    <a href="{% url 'loyalty:assign_points' %}" class="btn btn-outline-success text-start p-3">
-                        <i class="fas fa-star me-3 fa-lg"></i> Asignar Puntos
-                    </a>
-                    <a href="{% url 'stamps:assign_stamps' %}" class="btn btn-outline-warning text-start p-3">
-                        <i class="fas fa-stamp me-3 fa-lg"></i> Poner Sello
-                    </a>
-                    <a href="{% url 'rewards:redeem_reward' %}" class="btn btn-outline-danger text-start p-3">
-                        <i class="fas fa-gift me-3 fa-lg"></i> Canjear Premio
-                    </a>
-                    <a href="{% url 'services:service_list' %}" class="btn btn-outline-secondary text-start p-3">
-                        <i class="fas fa-cut me-3 fa-lg"></i> Editar Servicios
-                    </a>
-                    <a href="{% url 'stamps_public:qr_request' user.organization.slug %}" target="_blank" class="btn btn-outline-info text-start p-3">
-                        <i class="fas fa-qrcode me-3 fa-lg"></i> Ver QR de Solicitudes
-                    </a>
+                    <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -201,33 +503,71 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script>
+    function updateGreeting() {
+        // ... previous code
+    }
+    updateGreeting();
+
+    function copyShareLink() {
+        const url = window.location.origin + "/q/{{ user.organization.slug }}/";
+        navigator.clipboard.writeText(url).then(() => {
+            alert("¡Enlace de registro copiado al portapapeles! 📋✅\n\nComparte este link con tus clientes para que se unan a tu programa.");
+        });
+    }
+
+    function loadDailyActivity() {
+        const loader = document.getElementById('report-loader');
+        const content = document.getElementById('report-content');
+        const tableBody = document.getElementById('daily-activity-table-body');
+        
+        loader.classList.remove('d-none');
+        content.classList.add('d-none');
+        tableBody.innerHTML = '';
+
+        fetch("{% url 'core:daily_activity_api' %}")
+            .then(res => res.json())
+            .then(data => {
+                loader.classList.add('d-none');
+                content.classList.remove('d-none');
+                
+                if (data.activity.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Aún no hay actividad hoy.</td></tr>';
+                    return;
+                }
+
+                data.activity.forEach(item => {
+                    const row = document.createElement('tr');
+                    const badgeClass = item.type === 'points' ? 'bg-info-subtle text-info' : 'bg-primary-subtle text-primary';
+                    row.innerHTML = `
+                        <td class="small fw-bold">${item.time}</td>
+                        <td class="small fw-bold">${item.customer}</td>
+                        <td><span class="badge ${badgeClass} py-1 px-2 rounded-pill" style="font-size: 0.6rem;">${item.action}</span></td>
+                        <td class="small fw-bold">${item.value}</td>
+                        <td class="small text-muted">${item.staff}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            })
+            .catch(err => {
+                console.error("Error cargando actividad", err);
+                loader.innerHTML = '<div class="alert alert-danger small">Error al cargar datos.</div>';
+            });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        // --- Confeti de Cumpleaños ---
+        // --- Birthday Confetti ---
         {% if has_birthday_today %}
-        var duration = 5 * 1000;
-        var animationEnd = Date.now() + duration;
-        var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-        function randomInRange(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-
-        var interval = setInterval(function() {
-            var timeLeft = animationEnd - Date.now();
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
-            }
-
-            var particleCount = 50 * (timeLeft / duration);
-            // since particles fall down, start a bit higher than random
-            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#6366f1', '#a855f7', '#10b981']
+        });
         {% endif %}
 
+        // --- Fetch Stats ---
         fetch("{% url 'core:dashboard_stats_api' %}")
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 renderGrowthChart(data.customer_growth);
                 renderPromoChart(data.promo_stats);
@@ -235,57 +575,10 @@
             });
     });
 
-    function renderGrowthChart(stats) {
-        const ctx = document.getElementById('growthChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: stats.map(s => s.date),
-                datasets: [{
-                    label: 'Nuevos Clientes',
-                    data: stats.map(s => s.count),
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { 
-                    y: { 
-                        beginAtZero: true, 
-                        ticks: { stepSize: 1, precision: 0 } 
-                    } 
-                }
-            }
-        });
-    }
-
-    function renderPromoChart(stats) {
-        const ctx = document.getElementById('promoChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: stats.map(s => s.name),
-                datasets: [{
-                    data: stats.map(s => s.card_count),
-                    backgroundColor: ['#0d6efd', '#0dcaf0', '#198754', '#ffc107', '#6c757d']
-                }]
-            },
-            options: {
-                responsive: true,
-                aspectRatio: 1.5,
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    }
-
     function renderActivityChart(stats) {
-        const ctx = document.getElementById('activityChart').getContext('2d');
-        
-        // Agrupar datos por fecha para el gráfico de barras comparativo
+        const canvas = document.getElementById('activityChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         const dates = [...new Set(stats.map(s => s.date))];
         const addData = dates.map(d => {
             const item = stats.find(s => s.date === d && s.action === 'ADD');
@@ -301,26 +594,83 @@
             data: {
                 labels: dates,
                 datasets: [
-                    {
-                        label: 'Sellos Otorgados',
-                        data: addData,
-                        backgroundColor: '#0d6efd'
-                    },
-                    {
-                        label: 'Canjes Realizados',
-                        data: redeemData,
-                        backgroundColor: '#198754'
-                    }
+                    { label: 'Sellos +', data: addData, backgroundColor: '#6366f1', borderRadius: 4 },
+                    { label: 'Canjes -', data: redeemData, backgroundColor: '#10b981', borderRadius: 4 }
                 ]
             },
             options: {
                 responsive: true,
-                scales: { 
-                    y: { 
-                        beginAtZero: true,
-                        ticks: { precision: 0 }
-                    } 
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { borderDash: [5, 5] }, ticks: { stepSize: 1 } }
                 }
+            }
+        });
+    }
+
+    function renderGrowthChart(stats) {
+        const canvas = document.getElementById('growthChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 300);
+        grad.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+        grad.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: stats.map(s => s.date),
+                datasets: [{
+                    label: 'Registros',
+                    data: stats.map(s => s.count),
+                    borderColor: '#6366f1',
+                    borderWidth: 3,
+                    backgroundColor: grad,
+                    fill: true,
+                    tension: 0.5,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#6366f1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [5, 5] },
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderPromoChart(stats) {
+        const canvas = document.getElementById('promoChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: stats.map(s => s.name),
+                datasets: [{
+                    data: stats.map(s => s.card_count),
+                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#475569'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '75%',
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
             }
         });
     }

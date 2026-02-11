@@ -70,15 +70,160 @@ def tenant_dashboard(request):
     # 4. Actividad Reciente (Últimas 5 transacciones de puntos)
     recent_activity = PointTransaction.objects.filter(organization=tenant).select_related('customer', 'performed_by').order_by('-created_at')[:5]
 
+    # --- Métricas Avanzadas 2.0 ---
+    
+    # 5. Ranking de Staff (Hoy)
+    from apps.audit.models import AuditLog
+    staff_ranking = User.objects.filter(
+        organization=tenant,
+        is_active=True
+    ).filter(
+        Q(is_owner=True) | Q(is_staff_member=True)
+    ).annotate(
+        actions_today=Count('performed_audit_logs', filter=Q(performed_audit_logs__created_at__date=today))
+    ).filter(actions_today__gt=0).order_by('-actions_today')[:5]
+
+    # 6. Tasa de Retención (Clientes que han vuelto)
+    # Definimos "retenido" como cliente con > 1 transacción total
+    retained_count = Customer.objects.filter(organization=tenant).annotate(
+        tx_count=Count('point_transactions')
+    ).filter(tx_count__gt=1).count()
+    
+    retention_rate = 0
+    if total_customers > 0:
+        retention_rate = int((retained_count / total_customers) * 100)
+
+    # 7. Caja Estimada (Hoy) - Basado en descripción de auditoría de sellos
+    # (Asumimos que la descripción contiene el precio o podemos buscarlo)
+    # Por ahora haremos una suma simple de puntos ganados como proxy o 0 si no hay precios
+    estimated_revenue = PointTransaction.objects.filter(
+        organization=tenant,
+        created_at__date=today,
+        transaction_type='EARN'
+    ).count() * 10 # Multiplicamos por un ticket promedio base de 10 unidades de moneda
+    
+    # 8. Límites de Uso (Suscripción) - Filtrar solo los de módulos activos
+    from apps.core.models import UsageLimit
+    all_limits = UsageLimit.objects.filter(organization=tenant).order_by('limit_type')
+    
+    usage_limits = []
+    for limit in all_limits:
+        show_limit = True
+        ltype = limit.limit_type
+        
+        if ltype == 'appointments_monthly' and not request.user.has_feature_appointments:
+            show_limit = False
+        elif ltype == 'campaigns_monthly' and not request.user.has_feature_campaigns:
+            show_limit = False
+        elif ltype == 'sms_monthly':
+            show_limit = False  # Ocultar siempre por petición del usuario
+        # El almacenamiento (storage_mb) es base y suele estar visible
+        elif ltype == 'storage_mb' and limit.limit_value <= 0:
+            show_limit = False
+        elif ltype == 'customers' and not request.user.has_feature_customers:
+            if not (request.user.has_feature_points or request.user.has_feature_stamps):
+                show_limit = False
+        
+        if show_limit:
+            usage_limits.append(limit)
+    
     context = {
         'total_customers': total_customers,
         'new_customers_today': new_customers_today,
         'points_today': points_today,
         'active_stamp_cards': active_stamp_cards,
         'recent_activity': recent_activity,
+        'staff_ranking': staff_ranking,
+        'retention_rate': retention_rate,
+        'estimated_revenue': estimated_revenue,
+        'usage_limits': usage_limits,
         'title': f"Dashboard - {tenant.name}"
     }
     return render(request, 'core/dashboard.html', context)
+
+import csv
+from django.http import HttpResponse
+
+@login_required
+def export_daily_report(request):
+    """Exporta un resumen de la actividad de hoy en CSV"""
+    tenant = getattr(request, 'tenant', None) or request.user.organization
+    today = timezone.localtime().date()
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="Reporte_{today}.csv"'
+    response.write(u'\ufeff'.encode('utf8')) # BOM para Excel
+    
+    writer = csv.writer(response)
+    writer.writerow(['Cliente', 'Operación', 'Puntos/Sellos', 'Barbero', 'Hora'])
+    
+    # 1. Movimientos de Puntos
+    point_txs = PointTransaction.objects.filter(organization=tenant, created_at__date=today).select_related('customer', 'performed_by')
+    for tx in point_txs:
+        writer.writerow([
+            tx.customer.full_name,
+            tx.get_transaction_type_display(),
+            tx.points,
+            tx.performed_by.get_full_name() if tx.performed_by else 'Sistema',
+            tx.created_at.strftime('%H:%M')
+        ])
+    
+    # 2. Movimientos de Sellos
+    stamp_txs = StampTransaction.objects.filter(organization=tenant, created_at__date=today).select_related('card__customer', 'performed_by')
+    for tx in stamp_txs:
+        writer.writerow([
+            tx.card.customer.full_name,
+            f"Sello - {tx.get_action_display()}",
+            tx.quantity,
+            tx.performed_by.get_full_name() if tx.performed_by else 'Sistema',
+            tx.created_at.strftime('%H:%M')
+        ])
+        
+    return response
+
+@login_required
+def daily_activity_api(request):
+    """Devuelve JSON con la actividad detallada de hoy"""
+    tenant = getattr(request, 'tenant', None) or request.user.organization
+    today = timezone.localtime().date()
+    
+    # 1. Puntos
+    point_txs = PointTransaction.objects.filter(
+        organization=tenant, 
+        created_at__date=today
+    ).select_related('customer', 'performed_by').order_by('-created_at')
+    
+    # 2. Sellos
+    stamp_txs = StampTransaction.objects.filter(
+        organization=tenant, 
+        created_at__date=today
+    ).select_related('card__customer', 'performed_by').order_by('-created_at')
+    
+    results = []
+    for tx in point_txs:
+        results.append({
+            'time': tx.created_at.strftime('%H:%M'),
+            'customer': tx.customer.full_name,
+            'action': tx.get_transaction_type_display(),
+            'value': f"{tx.points} pts",
+            'staff': tx.performed_by.get_full_name() if tx.performed_by else 'Sistema',
+            'type': 'points'
+        })
+        
+    for tx in stamp_txs:
+        results.append({
+            'time': tx.created_at.strftime('%H:%M'),
+            'customer': tx.card.customer.full_name,
+            'action': f"Sello - {tx.get_action_display()}",
+            'value': f"{tx.quantity} qty",
+            'staff': tx.performed_by.get_full_name() if tx.performed_by else 'Sistema',
+            'type': 'stamps'
+        })
+        
+    # Ordenar por hora descendente
+    results.sort(key=lambda x: x['time'], reverse=True)
+    
+    return JsonResponse({'activity': results})
 
 @login_required
 def dashboard_stats_api(request):

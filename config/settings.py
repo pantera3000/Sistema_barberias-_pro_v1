@@ -80,6 +80,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'apps.customers.context_processors.birthday_celebrants',
                 'apps.core.context_processors.global_announcements',
+                'apps.core.context_processors.tenant_usage',
+                'apps.stamps.context_processors.stamp_assets',
             ],
         },
     },

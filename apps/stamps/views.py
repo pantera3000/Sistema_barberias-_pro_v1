@@ -46,16 +46,53 @@ def qr_request_stamp(request, slug):
                 defaults={'first_name': first_name or 'Cliente QR'}
             )
             
-            # Crear solicitud
-            StampRequest.objects.create(
+            # NUEVO: Evitar duplicados según la configuración del negocio (Cooldown dinámico)
+            cooldown_total_mins = (organization.stamp_lock_hours * 60) + organization.stamp_lock_minutes
+            
+            recent_request = StampRequest.objects.filter(
                 customer=customer,
                 promotion=promotion,
-                organization=organization
-            )
+                status='PENDING',
+                requested_at__gte=timezone.now() - timezone.timedelta(minutes=cooldown_total_mins)
+            ).exists()
+            
+            already_exists = False
+            if not recent_request:
+                # Crear solicitud
+                StampRequest.objects.create(
+                    customer=customer,
+                    promotion=promotion,
+                    organization=organization
+                )
+            else:
+                already_exists = True
+            
+            # Buscar solicitudes pendientes totales para esta promo (para mostrar en éxito)
+            pending_count = StampRequest.objects.filter(
+                customer=customer,
+                promotion=promotion,
+                status='PENDING'
+            ).count()
+            
+            # Buscar tarjeta activa
+            active_card = StampCard.objects.filter(
+                customer=customer,
+                promotion=promotion,
+                is_completed=False,
+                is_redeemed=False
+            ).first()
+            
+            # Auto-login: Crear sesión de cliente automáticamente
+            request.session['customer_id'] = customer.id
+            request.session['customer_org_id'] = organization.id
             
             return render(request, 'stamps/qr_request_success.html', {
                 'organization': organization,
-                'customer': customer
+                'customer': customer,
+                'promotion': promotion,
+                'active_card': active_card,
+                'pending_count': pending_count,
+                'already_exists': already_exists
             })
             
     return render(request, 'stamps/qr_request.html', {
@@ -96,15 +133,24 @@ def get_pending_requests(request):
     if not hasattr(request, 'tenant'):
         return JsonResponse({'error': 'No tenant'}, status=400)
     
+    query = request.GET.get('q', '')
     requests = StampRequest.objects.filter(
         organization=request.tenant, 
         status='PENDING'
     ).select_related('customer', 'promotion')
     
+    if query:
+        requests = requests.filter(
+            models.Q(customer__first_name__icontains=query) |
+            models.Q(customer__last_name__icontains=query) |
+            models.Q(customer__phone__icontains=query)
+        )
+    
     data = []
     for r in requests:
         data.append({
             'id': r.id,
+            'customer_id': r.customer.id,
             'customer_name': r.customer.full_name,
             'customer_phone': r.customer.phone,
             'promotion_name': r.promotion.name,
@@ -182,36 +228,42 @@ def resolve_stamp_request(request, pk):
     return JsonResponse({'status': 'ok', 'new_status': stamp_request.status})
 
 def api_customer_nudge(request):
-    """API para que el cliente complete su perfil desde el Kiosko"""
+    """API para que el cliente complete su perfil (soporta actualizaciones parciales)"""
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'error': 'Método no permitido'}, status=405)
     
-    customer_id = request.POST.get('customer_id')
+    # Obtener ID del cliente (POST o Sesión)
+    customer_id = request.POST.get('customer_id') or request.session.get('customer_id')
+    if not customer_id:
+        return JsonResponse({'status': 'error', 'error': 'Sesión no encontrada'}, status=401)
+    
     dni = request.POST.get('dni')
     first_name = request.POST.get('first_name')
     email = request.POST.get('email')
     birth_day = request.POST.get('birth_day')
     birth_month = request.POST.get('birth_month')
     
-    if not all([customer_id, dni, first_name, birth_day, birth_month]):
-        return JsonResponse({'status': 'error', 'error': 'Faltan datos obligatorios (Nombre, DNI y Cumpleaños)'}, status=400)
-    
     customer = get_object_or_404(Customer, id=customer_id)
     
-    # Actualizar datos
-    customer.first_name = first_name
-    customer.dni = dni
-    if email:
-        customer.email = email
-    customer.birth_day = int(birth_day)
-    customer.birth_month = int(birth_month)
+    # Actualizar solo si se envían
+    if first_name: customer.first_name = first_name
+    if dni: customer.dni = dni
+    if email: customer.email = email
+    
+    if birth_day and birth_month:
+        try:
+            customer.birth_day = int(birth_day)
+            customer.birth_month = int(birth_month)
+        except (ValueError, TypeError):
+            pass
+            
     customer.save()
     
     log_action(
         request,
         'CUSTOMER_NUDGE_UPDATE',
         'Cliente',
-        f"Perfil completado desde Kiosko (DNI: {dni}, Cumple: {birth_day}/{birth_month})",
+        f"Perfil actualizado (Cumple: {birth_day}/{birth_month})",
         customer=customer
     )
     
@@ -322,12 +374,17 @@ def card_list(request):
     cards = StampCard.objects.filter(organization=request.tenant, is_redeemed=False).select_related('customer', 'promotion').order_by('-redemption_requested', '-last_stamp_at')
     
     if query:
-        cards = cards.filter(
-            models.Q(customer__first_name__icontains=query) | 
-            models.Q(customer__last_name__icontains=query) |
-            models.Q(customer__phone__icontains=query) |
-            models.Q(customer__email__icontains=query)
-        )
+        search_filter = models.Q(customer__first_name__icontains=query) | \
+                        models.Q(customer__last_name__icontains=query) | \
+                        models.Q(customer__phone__icontains=query) | \
+                        models.Q(customer__email__icontains=query)
+        
+        # NUEVO: Búsqueda por ID numérico (Código de Canje)
+        clean_query = query.replace('#', '')
+        if clean_query.isdigit():
+            search_filter |= models.Q(pk=clean_query)
+            
+        cards = cards.filter(search_filter)
 
     from django.utils import timezone
     today = timezone.localtime().date()
@@ -335,16 +392,34 @@ def card_list(request):
     # Filtrar tarjetas expiradas del listado general (en memoria ya que depends de una property)
     cards = [c for c in cards if not c.is_expired]
 
+    pending_reqs = StampRequest.objects.filter(
+        organization=request.tenant,
+        status='PENDING'
+    ).order_by('requested_at')
+    
+    pending_map = {} # (cust_id, promo_id) -> {'count': X, 'id': Y}
+    for pr in pending_reqs:
+        key = (pr.customer_id, pr.promotion_id)
+        if key not in pending_map:
+            pending_map[key] = {'count': 0, 'id': pr.id}
+        pending_map[key]['count'] += 1
+
     # Agrupar tarjetas por cliente
     customer_groups = {}
     for card in cards:
         customer_id = card.customer.id
+        # Inyectar pendientes a la tarjeta
+        pd_data = pending_map.get((customer_id, card.promotion.id), {'count': 0, 'id': None})
+        card.pending_count = pd_data['count']
+        card.first_pending_request_id = pd_data['id']
+        
         if customer_id not in customer_groups:
             customer_groups[customer_id] = {
                 'customer': card.customer,
                 'active_cards': [],
                 'completed_cards': [],
                 'requested_count': 0,
+                'total_pending_stamps': 0,
                 'last_activity': card.last_stamp_at
             }
         
@@ -354,6 +429,7 @@ def card_list(request):
                 customer_groups[customer_id]['requested_count'] += 1
         else:
             customer_groups[customer_id]['active_cards'].append(card)
+            customer_groups[customer_id]['total_pending_stamps'] += card.pending_count
         
         if card.last_stamp_at > customer_groups[customer_id]['last_activity']:
             customer_groups[customer_id]['last_activity'] = card.last_stamp_at
@@ -556,8 +632,40 @@ def my_stamps(request):
     # Filtrar expiradas
     cards = [c for c in cards if not c.is_expired]
     
+    # NUEVO: Buscar solicitudes pendientes
+    pending_all = StampRequest.objects.filter(
+        customer=customer, 
+        status='PENDING'
+    ).select_related('promotion')
+    
+    # Vincular solicitudes pendientes a tarjetas existentes para evitar duplicados visuales
+    orphan_pending_map = {} # promotion_id -> StampRequest object with count
+    for pr in pending_all:
+        pr_promo_id = pr.promotion_id
+        # Vincular solo si la tarjeta tiene espacio para UN sello más (considerando los ya vinculados en este loop)
+        linked_card = next((
+            c for c in cards 
+            if c.promotion_id == pr_promo_id 
+            and not c.is_completed 
+            and (c.current_stamps + getattr(c, 'pending_count', 0)) < c.promotion.total_stamps_needed
+        ), None)
+        
+        if linked_card:
+            # Incrementar el contador de pendientes para esta tarjeta
+            linked_card.pending_count = getattr(linked_card, 'pending_count', 0) + 1
+        else:
+            # Agrupar solicitudes huérfanas por promoción
+            if pr_promo_id not in orphan_pending_map:
+                pr.pending_count = 1
+                orphan_pending_map[pr_promo_id] = pr
+            else:
+                orphan_pending_map[pr_promo_id].pending_count += 1
+    
+    orphan_pending = list(orphan_pending_map.values())
+    
     return render(request, 'stamps/my_stamps.html', {
         'cards': cards,
+        'pending_requests': orphan_pending, # Solo enviamos las huérfanas como Ghost Cards
         'customer': customer,
         'title': 'Mis Sellos'
     })

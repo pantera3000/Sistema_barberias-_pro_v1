@@ -6,42 +6,135 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white py-3">
-                <h5 class="mb-0">{{ title }}</h5>
+        <div class="card shadow-sm border-success">
+            <div class="card-header bg-success text-white py-3">
+                <h5 class="mb-0"><i class="fas fa-coins me-2"></i> {{ title }}</h5>
             </div>
-            <div class="card-body">
-                <form method="post">
+            <div class="card-body p-4">
+                <form method="post" id="pointsForm">
                     {% csrf_token %}
                     
-                    <div class="mb-3">
-                        <label class="form-label">Cliente</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Buscar Cliente</label>
+                        <div class="position-relative">
+                            <input type="text" id="customerSearch" class="form-control form-control-lg" placeholder="Nombre, Teléfono o DNI..." autocomplete="off">
+                            <div id="searchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1000; top: 100%;"></div>
+                        </div>
                         {{ form.customer }}
+                        <div id="selectedCustomer" class="mt-2 d-none">
+                            <span class="badge bg-success p-2">
+                                <i class="fas fa-user-check me-1"></i> Seleccionado: <span id="customerName"></span>
+                                <button type="button" class="btn-close btn-close-white ms-2" id="clearCustomer" style="font-size: 0.5rem;"></button>
+                            </span>
+                        </div>
+                        <div class="form-text mt-1 text-muted">Ingresa los datos del cliente para asignar puntos.</div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Tipo de Acción</label>
+                    <div class="row g-3">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">Tipo de Acción</label>
                             {{ form.transaction_type }}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Cantidad de Puntos</label>
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">Cantidad de Puntos</label>
                             {{ form.points }}
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Descripción / Motivo</label>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Descripción / Motivo</label>
                         {{ form.description }}
                     </div>
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-primary">Registrar Transacción</button>
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" id="submitBtn" class="btn btn-success btn-lg" disabled>
+                            <i class="fas fa-save me-2"></i> Registrar Transacción
+                        </button>
+                        <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-outline-secondary">
+                            Volver al Historial
+                        </a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('customerSearch');
+    const resultsDiv = document.getElementById('searchResults');
+    const customerInput = document.getElementById('id_customer');
+    const selectedDiv = document.getElementById('selectedCustomer');
+    const customerNameSpan = document.getElementById('customerName');
+    const clearBtn = document.getElementById('clearCustomer');
+    const submitBtn = document.getElementById('submitBtn');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            resultsDiv.classList.add('d-none');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`{% url 'customers:customer_search_api' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    if (data.results.length > 0) {
+                        data.results.forEach(customer => {
+                            const item = document.createElement('button');
+                            item.type = 'button';
+                            item.className = 'list-group-item list-group-item-action py-3';
+                            item.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold text-success">${customer.full_name}</div>
+                                        <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${customer.phone}</small>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-muted small"></i>
+                                </div>
+                            `;
+                            item.onclick = () => selectCustomer(customer);
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.classList.remove('d-none');
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted p-3">No se encontraron clientes</div>';
+                        resultsDiv.classList.remove('d-none');
+                    }
+                });
+        }, 300);
+    });
+
+    function selectCustomer(customer) {
+        customerInput.value = customer.id;
+        customerNameSpan.textContent = customer.full_name;
+        searchInput.value = '';
+        searchInput.classList.add('d-none');
+        selectedDiv.classList.remove('d-none');
+        resultsDiv.classList.add('d-none');
+        submitBtn.disabled = false;
+    }
+
+    clearBtn.onclick = function() {
+        customerInput.value = '';
+        searchInput.classList.remove('d-none');
+        selectedDiv.classList.add('d-none');
+        submitBtn.disabled = true;
+        searchInput.focus();
+    };
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.classList.add('d-none');
+        }
+    });
+});
+</script>
 {% endblock %}

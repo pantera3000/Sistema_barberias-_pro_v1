@@ -7,17 +7,32 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card shadow-sm border-primary">
-            <div class="card-header bg-primary text-white">
+            <div class="card-header bg-primary text-white py-3">
                 <h5 class="mb-0"><i class="fas fa-stamp me-2"></i> {{ title }}</h5>
             </div>
             <div class="card-body p-4">
-                <form method="post">
+                <form method="post" id="stampForm">
                     {% csrf_token %}
                     
                     <div class="mb-4">
                         <label class="form-label fw-bold">Buscar Cliente</label>
+                        <div class="position-relative">
+                            <input type="text" id="customerSearch" class="form-control form-control-lg" placeholder="Nombre, Teléfono o DNI..." autocomplete="off">
+                            <div id="searchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1000; top: 100%;"></div>
+                        </div>
                         {{ form.customer }}
-                        <div class="form-text">Selecciona el cliente que visitó hoy la barbería.</div>
+                        <div id="selectedCustomer" class="mt-2 d-none">
+                            <span class="badge bg-success p-2">
+                                <i class="fas fa-user-check me-1"></i> Seleccionado: <span id="customerName"></span>
+                                <button type="button" class="btn-close btn-close-white ms-2" id="clearCustomer" style="font-size: 0.5rem;"></button>
+                            </span>
+                        </div>
+                        <div class="form-text mt-1 text-muted">Escribe al menos 2 caracteres para buscar.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Promoción / Tarjeta</label>
+                        {{ form.promotion }}
                     </div>
 
                     <div class="mb-4">
@@ -26,7 +41,7 @@
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" id="submitBtn" class="btn btn-primary btn-lg" disabled>
                             <i class="fas fa-plus-circle me-2"></i> Agregar Sellos
                         </button>
                         <a href="{% url 'stamps:card_list' %}" class="btn btn-outline-secondary">
@@ -38,4 +53,82 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('customerSearch');
+    const resultsDiv = document.getElementById('searchResults');
+    const customerInput = document.getElementById('id_customer');
+    const selectedDiv = document.getElementById('selectedCustomer');
+    const customerNameSpan = document.getElementById('customerName');
+    const clearBtn = document.getElementById('clearCustomer');
+    const submitBtn = document.getElementById('submitBtn');
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            resultsDiv.classList.add('d-none');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`{% url 'customers:customer_search_api' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    if (data.results.length > 0) {
+                        data.results.forEach(customer => {
+                            const item = document.createElement('button');
+                            item.type = 'button';
+                            item.className = 'list-group-item list-group-item-action py-3';
+                            item.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold text-primary">${customer.full_name}</div>
+                                        <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${customer.phone}</small>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-muted small"></i>
+                                </div>
+                            `;
+                            item.onclick = () => selectCustomer(customer);
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.classList.remove('d-none');
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted p-3">No se encontraron clientes</div>';
+                        resultsDiv.classList.remove('d-none');
+                    }
+                });
+        }, 300);
+    });
+
+    function selectCustomer(customer) {
+        customerInput.value = customer.id;
+        customerNameSpan.textContent = customer.full_name;
+        searchInput.value = '';
+        searchInput.classList.add('d-none');
+        selectedDiv.classList.remove('d-none');
+        resultsDiv.classList.add('d-none');
+        submitBtn.disabled = false;
+    }
+
+    clearBtn.onclick = function() {
+        customerInput.value = '';
+        searchInput.classList.remove('d-none');
+        selectedDiv.classList.add('d-none');
+        submitBtn.disabled = true;
+        searchInput.focus();
+    };
+
+    // Cerrar resultados al hacer clic fuera
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.classList.add('d-none');
+        }
+    });
+});
+</script>
 {% endblock %}

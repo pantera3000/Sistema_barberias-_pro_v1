@@ -58,6 +58,17 @@
         .qr-badge-pulse {
             animation: qr-pulse 1.5s infinite;
         }
+
+        /* Orange Pulse for Pending Stamps */
+        @keyframes pending-pulse-orange {
+            0% { transform: scale(0.95); border-color: #f59e0b; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.1); }
+            50% { transform: scale(1.05); border-color: #d97706; box-shadow: 0 0 0 5px rgba(245, 158, 11, 0); background: rgba(245, 158, 11, 0.2); }
+            100% { transform: scale(0.95); border-color: #f59e0b; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); background: rgba(245, 158, 11, 0.1); }
+        }
+        .animate-pulse-orange {
+            animation: pending-pulse-orange 1.5s infinite;
+            border-style: dashed !important;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -133,14 +144,47 @@
                                 </span>
                             </div>
                         </div>
-                    </div>
                 </div>
 
-                <!-- Quick Access QR Scanner (PROMINENT) -->
+                <!-- Plan Usage (NUEVO) -->
+                {% if tenant_org and not user.is_superuser %}
                 <div class="px-3 mb-4">
-                    <a href="{% url 'stamps:qr_scanner' %}" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center">
+                    <div class="p-3 rounded-4 bg-dark text-white shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small opacity-75" style="font-size: 0.7rem;">Plan Actual</span>
+                            <i class="fas fa-crown text-warning small"></i>
+                        </div>
+                        <h6 class="fw-bold mb-3 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">
+                            {{ tenant_org.plan.name|default:"Plan Básico" }}
+                        </h6>
+                        
+                        {% if customer_limit %}
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small opacity-75" style="font-size: 0.65rem;">Clientes</span>
+                            <span class="small fw-bold" style="font-size: 0.65rem;">
+                                {{ customer_limit.current_usage }} / {% if customer_limit.limit_value == -1 %}∞{% else %}{{ customer_limit.limit_value }}{% endif %}
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 8px; background: rgba(0,0,0,0.3); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+                            <div class="progress-bar" 
+                                 role="progressbar" 
+                                 style="width: {{ customer_limit.usage_percentage }}%; background-color: #00f2ff !important; box-shadow: 0 0 10px rgba(0,242,255,0.6);"></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Quick Access QR Scanner (PROMINENT) -->
+                <div class="px-3 mb-2">
+                    <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#globalQRModal">
                         <i class="fas fa-camera me-2"></i> ESCANEAR QR
-                    </a>
+                    </button>
+                </div>
+                <div class="px-3 mb-4">
+                    <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#globalStampModal">
+                        <i class="fas fa-stamp me-2"></i> PONER SELLO
+                    </button>
                 </div>
 
                 <ul class="nav flex-column">
@@ -204,7 +248,7 @@
                     {% endif %}
                     {% if user.has_feature_stamps %}
                     <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center active" 
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'stamps' in request.path %}active{% endif %}" 
                            data-bs-toggle="collapse" href="#stampsSubmenu" role="button" 
                            aria-expanded="true">
                             <span><i class="fas fa-ticket-alt me-2"></i> Sellos</span>
@@ -277,7 +321,7 @@
                     {% endif %}
                     {% if user.has_feature_campaigns and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center active" 
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'campaigns' in request.path %}active{% endif %}" 
                            data-bs-toggle="collapse" href="#marketingSubmenu" role="button" 
                            aria-expanded="true">
                             <span><i class="fas fa-bullhorn me-2"></i> Marketing</span>
@@ -465,6 +509,8 @@ Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándo
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Library for QR Scanning -->
+<script src="https://unpkg.com/html5-qrcode"></script>
 {% block extra_js %}{% endblock %}
 <script>
     {% if user.is_authenticated and request.tenant %}
@@ -586,6 +632,376 @@ Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándo
 <audio id="qrNotificationSound" preload="auto">
     <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
 </audio>
+
+<!-- MODAL GLOBAL DE ASIGNACIÓN DE SELLOS -->
+<div class="modal fade" id="globalStampModal" tabindex="-1" aria-labelledby="globalStampModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-primary text-white py-3" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold" id="globalStampModalLabel">
+                    <i class="fas fa-stamp me-2"></i> Asignación Rápida de Sello
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="globalStampForm" action="{% url 'stamps:assign_stamps' %}" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="customer" id="global_id_customer">
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">1. Buscar Cliente</label>
+                        <div class="position-relative">
+                            <input type="text" id="global_customerSearch" class="form-control form-control-lg border-2" placeholder="Nombre, Teléfono o DNI..." autocomplete="off" style="border-radius: 12px;">
+                            <div id="global_searchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1050; top: 100%; border-radius: 0 0 12px 12px;"></div>
+                        </div>
+                        <div id="global_selectedCustomer" class="mt-2 d-none">
+                            <div class="alert alert-success d-flex align-items-center justify-content-between mb-0 py-2 px-3" style="border-radius: 12px;">
+                                <div>
+                                    <i class="fas fa-user-check me-2"></i>
+                                    <strong><span id="global_customerNameDisplay"></span></strong>
+                                </div>
+                                <button type="button" class="btn-close" id="global_clearCustomer"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">2. Seleccionar Promoción</label>
+                        <select name="promotion" class="form-select form-select-lg border-2" style="border-radius: 12px;" required>
+                            {% for promo in global_active_promotions %}
+                                <option value="{{ promo.id }}">{{ promo.name }}</option>
+                            {% empty %}
+                                <option disabled>No hay promociones activas</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">3. Cantidad de Sellos</label>
+                        <input type="number" name="quantity" class="form-control form-control-lg border-2" value="1" min="1" style="border-radius: 12px;">
+                    </div>
+
+                    <div class="d-grid mt-2">
+                        <button type="submit" id="global_submitBtn" class="btn btn-primary btn-lg fw-bold" disabled style="border-radius: 12px;">
+                            Confirmar y Otorgar Sello
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('global_customerSearch');
+    const resultsDiv = document.getElementById('global_searchResults');
+    const customerInput = document.getElementById('global_id_customer');
+    const selectedDiv = document.getElementById('global_selectedCustomer');
+    const nameDisplay = document.getElementById('global_customerNameDisplay');
+    const clearBtn = document.getElementById('global_clearCustomer');
+    const btnSubmit = document.getElementById('global_submitBtn');
+    let debounceTimer;
+
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 2) {
+            resultsDiv.classList.add('d-none');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/app/customers/api/search/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsDiv.innerHTML = '';
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(customer => {
+                            const item = document.createElement('button');
+                            item.type = 'button';
+                            item.className = 'list-group-item list-group-item-action py-3 border-start-0 border-end-0';
+                            item.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold text-primary">${customer.full_name}</div>
+                                        <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${customer.phone}</small>
+                                    </div>
+                                    <i class="fas fa-plus text-primary small"></i>
+                                </div>
+                            `;
+                            item.onclick = () => {
+                                customerInput.value = customer.id;
+                                nameDisplay.textContent = customer.full_name;
+                                searchInput.classList.add('d-none');
+                                selectedDiv.classList.remove('d-none');
+                                resultsDiv.classList.add('d-none');
+                                btnSubmit.disabled = false;
+                            };
+                            resultsDiv.appendChild(item);
+                        });
+                        resultsDiv.classList.remove('d-none');
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted p-3">No hay coincidencias</div>';
+                        resultsDiv.classList.remove('d-none');
+                    }
+                });
+        }, 300);
+    });
+
+    clearBtn.onclick = function() {
+        customerInput.value = '';
+        searchInput.value = '';
+        searchInput.classList.remove('d-none');
+        selectedDiv.classList.add('d-none');
+        btnSubmit.disabled = true;
+        searchInput.focus();
+    };
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.classList.add('d-none');
+        }
+    });
+});
+</script>
+
+<!-- MODAL GLOBAL DE ESCÁNER QR -->
+<div class="modal fade" id="globalQRModal" tabindex="-1" aria-labelledby="globalQRModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header bg-dark text-white py-3" style="border-radius: 20px 20px 0 0;">
+                <h5 class="modal-title fw-bold" id="globalQRModalLabel">
+                    <i class="fas fa-qrcode me-2"></i> Escanear Cliente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="closeQRModal"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div id="qr-scanner-view">
+                    <p class="text-muted small mb-3">Apunta al código QR del cliente para identificarlo.</p>
+                    <div id="global-reader" style="width: 100%; border-radius: 15px; overflow: hidden; border: none;"></div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" id="btn-show-manual">
+                            <i class="fas fa-search me-1"></i> No funciona el escáner
+                        </button>
+                    </div>
+                </div>
+
+                <div id="qr-manual-view" class="d-none">
+                    <p class="text-muted small mb-3">Busca al cliente por nombre, teléfono o DNI.</p>
+                    <div class="position-relative text-start">
+                        <input type="text" id="qr_manual_search" class="form-control form-control-lg border-2" placeholder="Ej: 999111222..." autocomplete="off" style="border-radius: 12px;">
+                        <div id="qr_manual_results" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1060; top: 100%; border-radius: 0 0 12px 12px;"></div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="button" class="btn btn-link btn-sm text-decoration-none" id="btn-show-camera">
+                            <i class="fas fa-camera me-1"></i> Volver a la cámara
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-3 pt-3 border-top">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Lógica del Buscador de Sellos AJAX ---
+    const searchInput = document.getElementById('global_customerSearch');
+    const resultsDiv = document.getElementById('global_searchResults');
+    const customerInput = document.getElementById('global_id_customer');
+    const selectedDiv = document.getElementById('global_selectedCustomer');
+    const nameDisplay = document.getElementById('global_customerNameDisplay');
+    const clearBtn = document.getElementById('global_clearCustomer');
+    const btnSubmit = document.getElementById('global_submitBtn');
+    let debounceTimer;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+
+            if (query.length < 2) {
+                resultsDiv.classList.add('d-none');
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetch(`/app/customers/api/search/?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        resultsDiv.innerHTML = '';
+                        if (data.results && data.results.length > 0) {
+                            data.results.forEach(customer => {
+                                const item = document.createElement('button');
+                                item.type = 'button';
+                                item.className = 'list-group-item list-group-item-action py-3 border-start-0 border-end-0';
+                                item.innerHTML = `
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="fw-bold text-primary">${customer.full_name}</div>
+                                            <small class="text-muted"><i class="fas fa-phone-alt me-1"></i> ${customer.phone}</small>
+                                        </div>
+                                        <i class="fas fa-plus text-primary small"></i>
+                                    </div>
+                                `;
+                                item.onclick = () => {
+                                    customerInput.value = customer.id;
+                                    nameDisplay.textContent = customer.full_name;
+                                    searchInput.classList.add('d-none');
+                                    selectedDiv.classList.remove('d-none');
+                                    resultsDiv.classList.add('d-none');
+                                    btnSubmit.disabled = false;
+                                };
+                                resultsDiv.appendChild(item);
+                            });
+                            resultsDiv.classList.remove('d-none');
+                        } else {
+                            resultsDiv.innerHTML = '<div class="list-group-item text-muted p-3">No hay coincidencias</div>';
+                            resultsDiv.classList.remove('d-none');
+                        }
+                    });
+            }, 300);
+        });
+
+        clearBtn.onclick = function() {
+            customerInput.value = '';
+            searchInput.value = '';
+            searchInput.classList.remove('d-none');
+            selectedDiv.classList.add('d-none');
+            btnSubmit.disabled = true;
+            searchInput.focus();
+        };
+
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+                resultsDiv.classList.add('d-none');
+            }
+        });
+    }
+
+    // --- Lógica del Escáner QR Global ---
+    const qrModal = document.getElementById('globalQRModal');
+    const qrScannerView = document.getElementById('qr-scanner-view');
+    const qrManualView = document.getElementById('qr-manual-view');
+    const btnShowManual = document.getElementById('btn-show-manual');
+    const btnShowCamera = document.getElementById('btn-show-camera');
+    const manualSearchInput = document.getElementById('qr_manual_search');
+    const manualResultsDiv = document.getElementById('qr_manual_results');
+    
+    let html5QrCode;
+
+    if (qrModal) {
+        // Toggle: Mostrar Buscador Manual
+        btnShowManual.onclick = function() {
+            qrScannerView.classList.add('d-none');
+            qrManualView.classList.remove('d-none');
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.error("Error al detener sensor", err));
+            }
+            manualSearchInput.focus();
+        };
+
+        // Toggle: Volver a la Cámara
+        btnShowCamera.onclick = function() {
+            qrManualView.classList.add('d-none');
+            qrScannerView.classList.remove('d-none');
+            startQRScanner();
+        };
+
+        function startQRScanner() {
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("global-reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                (decodedText) => {
+                    html5QrCode.stop().then(() => {
+                        window.location.href = decodedText;
+                    });
+                },
+                (errorMessage) => {}
+            ).catch((err) => {
+                console.error("No se pudo iniciar el escáner QR", err);
+                document.getElementById('global-reader').innerHTML = `
+                    <div class="alert alert-danger small py-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i> Error de cámara. Usa el buscador manual.
+                    </div>
+                `;
+            });
+        }
+
+        qrModal.addEventListener('shown.bs.modal', function () {
+            // Reset views
+            qrScannerView.classList.remove('d-none');
+            qrManualView.classList.add('d-none');
+            manualSearchInput.value = '';
+            manualResultsDiv.classList.add('d-none');
+            startQRScanner();
+        });
+
+        qrModal.addEventListener('hidden.bs.modal', function () {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.error("Error al detener sensor", err));
+            }
+        });
+
+        // Lógica de búsqueda manual con AJAX (Plan B)
+        if (manualSearchInput) {
+            let manualDebounce;
+            manualSearchInput.addEventListener('input', function() {
+                clearTimeout(manualDebounce);
+                const query = this.value.trim();
+                if (query.length < 2) {
+                    manualResultsDiv.classList.add('d-none');
+                    return;
+                }
+
+                manualDebounce = setTimeout(() => {
+                    fetch(`/app/customers/api/search/?q=${encodeURIComponent(query)}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            manualResultsDiv.innerHTML = '';
+                            if (data.results && data.results.length > 0) {
+                                data.results.forEach(customer => {
+                                    const item = document.createElement('button');
+                                    item.type = 'button';
+                                    item.className = 'list-group-item list-group-item-action py-3 border-start-0 border-end-0';
+                                    item.innerHTML = `
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <div class="fw-bold text-primary">${customer.full_name}</div>
+                                                <small class="text-muted">${customer.phone}</small>
+                                            </div>
+                                            <i class="fas fa-external-link-alt text-primary small"></i>
+                                        </div>
+                                    `;
+                                    item.onclick = () => {
+                                        // Redirigir al perfil del cliente (asumimos URL estándar)
+                                        window.location.href = `/app/customers/${customer.id}/`;
+                                    };
+                                    manualResultsDiv.appendChild(item);
+                                });
+                                manualResultsDiv.classList.remove('d-none');
+                            } else {
+                                manualResultsDiv.innerHTML = '<div class="list-group-item text-muted p-3">Sin resultados</div>';
+                                manualResultsDiv.classList.remove('d-none');
+                            }
+                        });
+                }, 300);
+            });
+        }
+    }
+});
+</script>
 
 </body>
 </html>

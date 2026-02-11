@@ -3,6 +3,8 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block extra_css %}
+<!-- Animate.css -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 <style>
     :root {
         --cardboard-bg: #f4ecd8;
@@ -54,11 +56,10 @@
         align-items: center;
         justify-content: center;
         color: var(--ink-color);
-        font-size: 1.5rem;
+        font-size: 1.8rem; /* Un poco más grande */
         opacity: 0.9;
         filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2));
-        mask-image: url("https://www.transparenttextures.com/patterns/asfalt-dark.png"); /* Efecto de tinta gastada */
-        -webkit-mask-image: url("https://www.transparenttextures.com/patterns/asfalt-dark.png");
+        /* Eliminamos mask-image que causaba que no se vea en algunos navegadores */
     }
     .card-footer-info {
         background: rgba(0,0,0,0.03);
@@ -79,14 +80,25 @@
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         z-index: 10;
     }
-    .kiosk-btn-float {
-        position: fixed;
-        bottom: 25px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
-        box-shadow: 0 5px 20px rgba(13, 110, 253, 0.4);
-        border: 3px solid white;
+    .stamp-spot.is-pending {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.05);
+        animation: pending-pulse-border 1.5s infinite;
+    }
+    .pending-ink {
+        color: #f59e0b;
+        opacity: 0.8 !important;
+        animation: pending-pulse-ink 1.5s infinite;
+    }
+    @keyframes pending-pulse-border {
+        0% { border-color: #f59e0b; }
+        50% { border-color: transparent; }
+        100% { border-color: #f59e0b; }
+    }
+    @keyframes pending-pulse-ink {
+        0% { transform: scale(0.9); opacity: 0.3; }
+        50% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(0.9); opacity: 0.3; }
     }
 </style>
 {% endblock %}
@@ -108,6 +120,52 @@
             <p class="text-muted small">Miembro desde {{ customer.created_at|date:"M Y" }}</p>
         </div>
 
+        <!-- Pending Ghost Cards (For onboarding/UX) -->
+        {% for pr in pending_requests %}
+        <div class="punch-card-wrapper mb-4 animate__animated animate__pulse animate__infinite animate__slow" style="opacity: 0.7; filter: grayscale(0.5);">
+            <div class="diagonal-banner bg-secondary">VALIDANDO...</div>
+
+            <div class="text-center border-bottom border-dark border-opacity-10 pb-3 mb-3">
+                <h5 class="fw-bold mb-1 text-uppercase letter-spacing-1" style="color: #64748b;">{{ pr.promotion.name }}</h5>
+                <p class="small mb-0 text-muted">
+                    <i class="fas fa-clock me-1"></i> Esperando aprobación del barbero
+                </p>
+            </div>
+
+            <div class="stamp-grid-premium">
+                {% with ""|center:pr.promotion.total_stamps_needed as range %}
+                {% for _ in range %}
+                    <div class="stamp-spot {% if pr.pending_count and forloop.counter <= pr.pending_count %}is-pending{% endif %}">
+                        {% if pr.pending_count and forloop.counter <= pr.pending_count %}
+                            <div class="stamp-ink pending-ink animate__animated animate__flash animate__infinite">
+                                <i class="fas fa-stamp"></i>
+                            </div>
+                        {% else %}
+                            <span class="text-muted opacity-25 fw-bold">{{ forloop.counter }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                {% endwith %}
+            </div>
+
+            <div class="card-footer-info" style="background: #f1f5f9;">
+                <div class="text-center py-2">
+                    <p class="small fw-bold text-muted mb-1">SOLICITADO: {{ pr.requested_at|date:"d M, H:i" }}</p>
+                    <p class="text-muted mb-2" style="font-size: 0.7rem;">
+                        {% if pr.pending_count > 1 %}
+                            Tienes <strong>{{ pr.pending_count }} sellos</strong> en validación.
+                        {% else %}
+                            Esperando validación del barbero.
+                        {% endif %}
+                    </p>
+                    <div class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 py-1 px-3 rounded-pill" style="font-size: 0.6rem;">
+                        <i class="fas fa-info-circle me-1"></i> Máximo 1 sello por visita
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
         {% for card in cards %}
         <div class="punch-card-wrapper mb-4">
             {% if card.is_completed and not card.redemption_requested %}
@@ -126,10 +184,14 @@
             <div class="stamp-grid-premium">
                 {% with ""|center:card.promotion.total_stamps_needed as range %}
                 {% for _ in range %}
-                    <div class="stamp-spot {% if forloop.counter <= card.current_stamps %}stamped{% endif %}">
+                    <div class="stamp-spot {% if forloop.counter <= card.current_stamps %}stamped{% elif card.pending_count and forloop.counter > card.current_stamps and forloop.counter <= card.current_stamps|add:card.pending_count %}is-pending{% endif %}">
                         {% if forloop.counter <= card.current_stamps %}
                             <div class="stamp-ink" style="color: {{ card.promotion.primary_color|default:'#2c3e50' }}">
-                                <i class="fas fa-check-circle"></i>
+                                <i class="fas fa-stamp"></i>
+                            </div>
+                        {% elif card.pending_count and forloop.counter > card.current_stamps and forloop.counter <= card.current_stamps|add:card.pending_count %}
+                            <div class="stamp-ink pending-ink animate__animated animate__flash animate__infinite">
+                                <i class="fas fa-stamp"></i>
                             </div>
                         {% else %}
                             <span class="text-muted opacity-25 fw-bold">{{ forloop.counter }}</span>
@@ -143,11 +205,17 @@
                 {% if card.is_completed %}
                     {% if card.redemption_requested %}
                         <div class="text-center">
-                            <p class="small fw-bold text-success mb-2">¡SOLICITUD ENVIADA!</p>
-                            <div class="bg-white p-2 border rounded border-warning d-inline-block px-3">
-                                <span class="h5 fw-bold font-monospace">#{{ card.pk }}{{ card.customer.id }}</span>
+                            <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+                            <h6 class="fw-bold text-success mb-3 text-uppercase">¡Solicitud Enviada!</h6>
+                            
+                            <div class="bg-white p-3 border rounded-4 border-warning shadow-sm d-inline-block px-4 mb-3">
+                                <small class="text-muted d-block text-uppercase mb-1 fw-bold" style="font-size: 0.6rem; letter-spacing: 1px;">CÓDIGO DE VALIDACIÓN</small>
+                                <span class="h4 fw-bold font-monospace text-dark">#{{ card.pk }}</span>
                             </div>
-                            <p class="small text-muted mt-2 mb-0">Presenta este código al personal para canjear.</p>
+                            
+                            <p class="small text-muted mb-0 px-3">
+                                Muestra este código al personal para que <br><strong>validen y entreguen</strong> tu premio.
+                            </p>
                         </div>
                     {% else %}
                         <div class="text-center">
@@ -164,7 +232,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="small fw-bold text-muted">A SOLO {{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }} <i class="fas fa-stamp px-1"></i></span>
                         <span class="badge rounded-pill bg-dark py-1 px-3">
-                            {{ card.current_stamps }} / {{ card.promotion.total_stamps_needed }}
+                            {{ card.current_stamps }}{% if card.pending_count %} <small class="text-warning">+{{ card.pending_count }}</small>{% endif %} / {{ card.promotion.total_stamps_needed }}
                         </span>
                     </div>
                     <div class="progress" style="height: 6px; background: rgba(0,0,0,0.05);">
@@ -177,7 +245,9 @@
                 {% endif %}
             </div>
         </div>
-        {% empty %}
+        {% endfor %}
+
+        {% if not cards and not pending_requests %}
         <div class="text-center py-5">
             <div class="display-1 text-muted opacity-10 mb-4">
                 <i class="fas fa-ticket-alt"></i>
@@ -185,7 +255,23 @@
             <h4 class="fw-light">Aún no tienes tarjetas activas</h4>
             <p class="text-muted small">Pide tu tarjeta en tu próxima visita.</p>
         </div>
-        {% endfor %}
+        {% endif %}
+
+        <!-- Profile Nudge Banner (If missing info) -->
+        {% if not customer.dni or not customer.birth_day %}
+        <div class="card border-0 shadow-sm rounded-4 mb-4 animate__animated animate__fadeInUp" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+            <div class="card-body p-4 text-center">
+                <div class="mb-3">
+                    <span class="fs-1">🎁</span>
+                </div>
+                <h5 class="fw-bold mb-2">¡Mejora tu Cuenta!</h5>
+                <p class="small opacity-75 mb-3">Completa tu perfil para validar tu identidad y recibir sorpresas exclusivas en tu día especial.</p>
+                <button class="btn btn-light rounded-pill px-4 fw-bold w-100" data-bs-toggle="modal" data-bs-target="#profileUpdateModal">
+                    Completar mi Perfil
+                </button>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Quick Info -->
         <div class="card border-0 shadow-sm rounded-4 mb-4">
@@ -213,9 +299,125 @@
     </div>
 </div>
 
+<!-- Modal: Completar Perfil -->
+<div class="modal fade" id="profileUpdateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 28px;">
+            <div class="modal-header border-0 p-4 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pt-0 text-center">
+                <div class="mb-3">
+                    <img src="https://cdn-icons-png.flaticon.com/512/4213/4213958.png" alt="Gift" style="width: 80px;" class="animate__animated animate__bounceIn">
+                </div>
+                <h4 class="fw-bold mb-2">Actualiza tus Datos</h4>
+                <p class="text-muted small mb-4">Ingresa tus datos para enviarte sorpresas en tu día y validar tu identidad.</p>
+                
+                <form id="profile-update-form" class="text-start">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="small fw-bold mb-1 text-primary">Nombre completo <span class="text-danger">*</span></label>
+                        <input type="text" name="first_name" class="form-control rounded-3" value="{{ customer.first_name }}" placeholder="Juan Pérez" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold mb-1">DNI / Documento <span class="text-danger">*</span></label>
+                        <input type="text" name="dni" class="form-control rounded-3" value="{{ customer.dni|default:'' }}" placeholder="Ingresa tu DNI" required>
+                        <small class="text-muted" style="font-size: 0.65rem;"><i class="fas fa-lock me-1"></i> Este número será tu llave de acceso.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small fw-bold mb-1">Email (Opcional)</label>
+                        <input type="email" name="email" class="form-control rounded-3" value="{{ customer.email|default:'' }}" placeholder="tu@correo.com">
+                    </div>
+                    <div class="mb-4">
+                        <label class="small fw-bold mb-1">Tu Cumpleaños</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <select class="form-select rounded-3" name="birth_day" required>
+                                    <option value="">Día</option>
+                                    {% for i in "1234567890123456789012345678901"|make_list %}
+                                        <option value="{{ forloop.counter }}" {% if customer.birth_day == forloop.counter %}selected{% endif %}>{{ forloop.counter }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select rounded-3" name="birth_month" required>
+                                    <option value="">Mes</option>
+                                    <option value="1" {% if customer.birth_month == 1 %}selected{% endif %}>Enero</option>
+                                    <option value="2" {% if customer.birth_month == 2 %}selected{% endif %}>Febrero</option>
+                                    <option value="3" {% if customer.birth_month == 3 %}selected{% endif %}>Marzo</option>
+                                    <option value="4" {% if customer.birth_month == 4 %}selected{% endif %}>Abril</option>
+                                    <option value="5" {% if customer.birth_month == 5 %}selected{% endif %}>Mayo</option>
+                                    <option value="6" {% if customer.birth_month == 6 %}selected{% endif %}>Junio</option>
+                                    <option value="7" {% if customer.birth_month == 7 %}selected{% endif %}>Julio</option>
+                                    <option value="8" {% if customer.birth_month == 8 %}selected{% endif %}>Agosto</option>
+                                    <option value="9" {% if customer.birth_month == 9 %}selected{% endif %}>Septiembre</option>
+                                    <option value="10" {% if customer.birth_month == 10 %}selected{% endif %}>Octubre</option>
+                                    <option value="11" {% if customer.birth_month == 11 %}selected{% endif %}>Noviembre</option>
+                                    <option value="12" {% if customer.birth_month == 12 %}selected{% endif %}>Diciembre</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold rounded-pill shadow-sm" id="btn-save-profile">
+                        <i class="fas fa-save me-2"></i> ¡Guardar y recibir sorpresas!
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Sticky QR Identification Button -->
 <a href="{% url 'stamps:customer_kiosk' %}" class="btn btn-primary btn-lg rounded-pill kiosk-btn-float px-4 py-3">
     <i class="fas fa-qrcode me-2"></i> MOSTRAR MI QR
 </a>
 
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    document.getElementById('profile-update-form')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btn-save-profile');
+        const originalContent = btn.innerHTML;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Guardando...';
+        btn.disabled = true;
+
+        const formData = new FormData(this);
+        
+        fetch("{% url 'stamps:api_customer_nudge' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                
+                // Cerrar modal y recargar página para reflejar cambios (o simplemente ocultar el banner)
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                alert("Error al guardar: " + (data.error || "Desconocido"));
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
+        });
+    });
+</script>
 {% endblock %}

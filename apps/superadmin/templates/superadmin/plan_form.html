@@ -61,44 +61,173 @@
                         </div>
                     </div>
 
-                    <h5 class="fw-bold mb-4 border-bottom pb-2">Funcionalidades Incluidas</h5>
-                    <div class="row g-3 mb-4 bg-light p-3 rounded-4 mx-0">
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.enable_whatsapp }}
-                                <label class="form-check-label small">WhatsApp Mkt</label>
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">Configuración de Módulos</h5>
+                    
+                    <!-- CRM / Clientes -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-address-book text-primary me-2"></i>
+                            <h6 class="fw-bold mb-0">Gestión de Clientes y CRM</h6>
+                        </div>
+                        <div class="bg-light p-3 rounded-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_customers }}
+                                        <label class="form-check-label small fw-bold">Modulo CRM</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_customers_import_csv }}
+                                        <label class="form-check-label small">Importar CSV</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_customers_export_data }}
+                                        <label class="form-check-label small">Exportar Datos</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.enable_reports }}
-                                <label class="form-check-label small">Reportes Avanzados</label>
+                    </div>
+
+                    <!-- Fidelización -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-star text-warning me-2"></i>
+                            <h6 class="fw-bold mb-0">Sistemas de Fidelización</h6>
+                        </div>
+                        <div class="bg-light p-3 rounded-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_stamps }}
+                                        <label class="form-check-label small fw-bold">Sellos (Punch Cards)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_points }}
+                                        <label class="form-check-label small fw-bold">Puntos</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_rewards }}
+                                        <label class="form-check-label small fw-bold">Catálogo Premios</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.enable_audit }}
-                                <label class="form-check-label small">Auditoría Global</label>
+                    </div>
+
+                    <!-- Marketing -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-bullhorn text-success me-2"></i>
+                            <h6 class="fw-bold mb-0">Marketing y Comunicación</h6>
+                        </div>
+                        <div class="bg-light p-3 rounded-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_whatsapp }}
+                                        <label class="form-check-label small fw-bold">Marketing (Gral)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_campaigns_whatsapp_manual }}
+                                        <label class="form-check-label small">Envío Manual WA</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_campaigns_auto_notifications }}
+                                        <label class="form-check-label small">Notif. Auto</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_campaigns_pabbly }}
+                                        <label class="form-check-label small">Integración Pabbly</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.enable_stamps }}
-                                <label class="form-check-label small">Punch Cards</label>
+                    </div>
+
+                    <!-- Citas -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-calendar-check text-info me-2"></i>
+                            <h6 class="fw-bold mb-0">Agenda y Citas</h6>
+                        </div>
+                        <div class="bg-light p-3 rounded-4">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_appointments }}
+                                        <label class="form-check-label small fw-bold">Módulo de Citas</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_appointments_online_booking }}
+                                        <label class="form-check-label small">Reservas Online</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.enable_points }}
-                                <label class="form-check-label small">Sist. Puntos</label>
+                    </div>
+
+                    <!-- Otros -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-plus-circle text-muted me-2"></i>
+                            <h6 class="fw-bold mb-0">Reportes, Auditoría y Otros</h6>
+                        </div>
+                        <div class="bg-light p-3 rounded-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_reports }}
+                                        <label class="form-check-label small fw-bold">Reportes Avanzados</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_audit }}
+                                        <label class="form-check-label small fw-bold">Auditoría (Logs)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_gamification }}
+                                        <label class="form-check-label small fw-bold">Gamificación</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_gamification_referrals }}
+                                        <label class="form-check-label small">Sist. Referidos</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.enable_integrations }}
+                                        <label class="form-check-label small">Integraciones API</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.enable_appointments }}
-                                <label class="form-check-label small">Módulo de Citas</label>
-                            </div>
-                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-3">
+                        {{ form.is_default }}
+                        <label class="form-check-label fw-bold text-primary">⭐ Plan por Defecto (Se asignará automáticamente)</label>
                     </div>
 
                     <div class="form-check form-switch mb-4">

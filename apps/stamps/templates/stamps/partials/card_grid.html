@@ -37,7 +37,7 @@
                          style="background-color: {{ card.promotion.primary_color }}15; color: #0a3622; border-left: 4px solid {{ card.promotion.primary_color }} !important;">
                         <div class="small overflow-hidden me-2">
                             <span class="fw-bold d-block text-truncate" style="font-size: 0.8rem;">
-                                {{ card.promotion.name }}
+                                {{ card.promotion.name }} <span class="text-muted font-monospace" style="font-size: 0.7rem;">#{{ card.pk }}</span>
                                 {% if card.redemption_requested %}
                                     <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem; vertical-align: middle;">SOLICITADO</span>
                                 {% endif %}
@@ -49,7 +49,7 @@
                         <form action="{% url 'stamps:redeem_card' card.pk %}" method="post" class="d-inline flex-shrink-0">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-sm text-white fw-bold shadow-sm" 
-                                    onclick="return confirm('¿Confirmar entrega de: {{ card.promotion.name }}?');"
+                                    onclick="return confirm('¿Confirmar entrega de: {{ card.promotion.name }} (#{{ card.pk }})?');"
                                     style="background-color: {{ card.promotion.primary_color }}; border: none; font-size: 0.7rem; padding: 4px 8px;">
                                 CANJEAR
                             </button>
@@ -64,17 +64,21 @@
                     {% for card in group.active_cards %}
                     <div class="text-center mb-4 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">{{ card.promotion.name }}</small>
+                            <small class="fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">
+                                {{ card.promotion.name }} <span class="font-monospace opacity-50">#{{ card.pk }}</span>
+                            </small>
                             <span class="badge rounded-pill" style="background-color: {{ card.promotion.primary_color }}; width: 10px; height: 10px; padding: 0;"> </span>
                         </div>
                         
                         <div class="stamp-grid mb-3">
                             {% with ""|center:card.promotion.total_stamps_needed as range %}
                             {% for _ in range %}
-                                <div class="stamp-slot {% if forloop.counter <= card.current_stamps %}active{% endif %}" 
+                                <div class="stamp-slot {% if forloop.counter <= card.current_stamps %}active{% elif card.pending_count and forloop.counter > card.current_stamps and forloop.counter <= card.current_stamps|add:card.pending_count %}animate-pulse-orange{% endif %}" 
                                      {% if forloop.counter <= card.current_stamps %}style="background-color: {{ card.promotion.primary_color }}; border-color: {{ card.promotion.primary_color }};"{% endif %}>
                                     {% if forloop.counter <= card.current_stamps %}
                                         <i class="fas fa-stamp"></i>
+                                    {% elif card.pending_count and forloop.counter > card.current_stamps and forloop.counter <= card.current_stamps|add:card.pending_count %}
+                                        <i class="fas fa-qrcode text-warning" style="font-size: 0.7rem;"></i>
                                     {% else %}
                                         <span class="slot-number">{{ forloop.counter }}</span>
                                     {% endif %}
@@ -92,14 +96,35 @@
                             <span class="fw-bold text-dark">Faltan {{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }}</span>
                         </div>
 
+                        <!-- Aviso de pendientes -->
+                        {% if card.pending_count %}
+                        <div class="alert alert-warning py-2 px-3 small mb-2 text-center shadow-sm" style="font-size: 0.7rem; border-radius: 12px; border: 1px dashed #f59e0b; background-color: #fffbeb;">
+                            <div class="mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i> Tiene <strong>{{ card.pending_count }} sello{{ card.pending_count|pluralize }}</strong> por QR pendiente
+                            </div>
+                            <button type="button" class="btn btn-warning btn-sm w-100 fw-bold shadow-sm" 
+                                    onclick="approvePendingQR('{{ card.first_pending_request_id }}', this)"
+                                    style="font-size: 0.65rem; padding: 4px 8px; background-color: #f59e0b; border: none; color: #fff;">
+                                <i class="fas fa-check-circle me-1"></i> APROBAR QR AHORA
+                            </button>
+                        </div>
+                        {% endif %}
+
                         <!-- Botón de Sello Rápido para ESTA tarjeta -->
-                        <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post" onsubmit="return confirm('¿Añadir 1 sello a {{ group.customer.full_name }} en {{ card.promotion.name }}?');">
+                        {% with is_boss=user.is_owner|default:user.is_superuser %}
+                        <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post" onsubmit="return confirm('¿Añadir 1 sello a {{ group.customer.full_name }} en {{ card.promotion.name }} (#{{ card.pk }})?');">
                             {% csrf_token %}
                             <input type="hidden" name="promotion_id" value="{{ card.promotion.id }}">
-                            <button type="submit" class="btn btn-sm w-100 py-2 btn-outline-primary fw-bold" style="border-color: {{ card.promotion.primary_color }}; color: {{ card.promotion.primary_color }};">
+                            <button type="submit" class="btn btn-sm w-100 py-2 btn-outline-primary fw-bold" 
+                                    {% if card.pending_count and not is_boss %}disabled title="Aprobar el QR primero"{% endif %}
+                                    style="border-color: {{ card.promotion.primary_color }}; color: {{ card.promotion.primary_color }};">
                                 <i class="fas fa-plus me-1"></i> MARCAR {{ card.promotion.name|upper }}
                             </button>
+                            {% if card.pending_count and not is_boss %}
+                            <small class="text-danger d-block mt-1" style="font-size: 0.6rem;">* Bloqueado: Tramita el QR primero</small>
+                            {% endif %}
                         </form>
+                        {% endwith %}
                     </div>
                     {% endfor %}
                 {% else %}

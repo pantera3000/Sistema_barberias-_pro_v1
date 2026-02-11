@@ -26,6 +26,12 @@ def worker_list(request):
 @owner_or_superuser_required
 def worker_create(request):
     """Crear nuevo trabajador en la organización"""
+    # Verificación de límites (Suscripción)
+    from apps.core.models import UsageLimit
+    staff_limit = UsageLimit.objects.filter(organization=request.user.organization, limit_type='staff').first()
+    if staff_limit and staff_limit.enforce_limit and staff_limit.is_exceeded:
+        messages.warning(request, "⚠️ Has alcanzado el límite de trabajadores de tu plan. Mejora tu suscripción para seguir registrando personal.")
+        return redirect('users:worker_list')
         
     if request.method == 'POST':
         form = WorkerForm(request.POST)

@@ -3,88 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitud Enviada - {{ organization.name }}</title>
+    <title>¡Bienvenido! - {{ organization.name }}</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
         :root {
-            --primary-color: {{ organization.primary_color|default:"#3B82F6" }};
+            --primary-color: {{ organization.primary_color|default:"#6366f1" }};
+            --bg-glass: rgba(255, 255, 255, 0.9);
         }
         body {
             font-family: 'Outfit', sans-serif;
-            background: #f8fafc;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            color: #1e293b;
+        }
+        .main-container {
+            width: 100%;
+            max-width: 480px;
         }
         .success-card {
-            background: #ffffff;
-            border-radius: 30px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-            padding: 50px 30px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(10px);
+            border-radius: 35px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            padding: 40px 30px;
             text-align: center;
-            width: 100%;
-            max-width: 450px;
-            border: none;
+            border: 1px solid rgba(255,255,255,0.5);
+            position: relative;
+            overflow: hidden;
         }
-        .success-icon {
-            width: 100px;
-            height: 100px;
+        .confetti-decoration {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0.2;
+            pointer-events: none;
+        }
+        .success-icon-wrap {
+            width: 80px;
+            height: 80px;
             background: #dcfce7;
             color: #22c55e;
-            border-radius: 50%;
+            border-radius: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
-            margin: 0 auto 30px;
-            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-size: 2.5rem;
+            margin: 0 auto 25px;
+            transform: rotate(-5deg);
         }
-        @keyframes bounceIn {
-            0% { transform: scale(0); opacity: 0; }
-            60% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
+        .digital-card-preview {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #4338ca 100%);
+            border-radius: 20px;
+            padding: 20px;
+            color: white;
+            text-align: left;
+            margin: 25px 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            position: relative;
         }
-        .btn-done {
+        .card-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        .card-stat {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        .stamp-dots {
+            display: flex;
+            gap: 5px;
+            margin-top: 15px;
+        }
+        .stamp-dot {
+            width: 12px;
+            height: 12px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+        }
+        .stamp-dot.active {
+            background: #fff;
+            box-shadow: 0 0 10px #fff;
+        }
+
+        .action-btn {
             background: #1e293b;
             color: white;
-            border-radius: 15px;
-            padding: 15px 30px;
+            border-radius: 18px;
+            padding: 16px 25px;
             font-weight: 700;
             text-decoration: none;
-            display: inline-block;
-            margin-top: 20px;
+            display: block;
+            width: 100%;
             transition: all 0.3s;
+            border: none;
+            margin-top: 20px;
         }
-        .btn-done:hover {
+        .action-btn:hover {
             background: #0f172a;
             color: white;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .nudge-section {
+            background: #fff;
+            border-radius: 24px;
+            padding: 20px;
+            margin-top: 25px;
+            border: 1px dashed #cbd5e1;
+            text-align: left;
+        }
+        .nudge-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-control-custom {
+            border-radius: 12px;
+            padding: 10px 15px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+        .btn-save-nudge {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 20px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
-<div class="success-card">
-    <div class="success-icon">
-        <i class="fas fa-check"></i>
+<div class="main-container animate__animated animate__fadeIn">
+    <div class="success-card">
+        <!-- Decoration icons -->
+        <span class="confetti-decoration" style="top: 10%; left: 10%;">🎉</span>
+        <span class="confetti-decoration" style="top: 20%; right: 15%;">✨</span>
+        <span class="confetti-decoration" style="bottom: 15%; left: 15%;">💈</span>
+
+        <div class="success-icon-wrap animate__animated animate__zoomIn {% if already_exists %}bg-warning-subtle text-warning{% endif %}">
+            <i class="fas {% if already_exists %}fa-clock{% else %}fa-certificate{% endif %}"></i>
+        </div>
+
+        <h3 class="fw-bold mb-1">{% if already_exists %}¡Solicitud ya Enviada!{% else %}¡Ya eres parte de esto!{% endif %}</h3>
+        <p class="text-muted small">
+            {% if already_exists %}
+                Ya registramos una solicitud tuya hace poco. El barbero la validará pronto.
+            {% else %}
+                Tu solicitud de sello ha sido enviada al barbero.
+            {% endif %}
+        </p>
+
+        <!-- Digital Card Preview (Option A Focus) -->
+        <div class="digital-card-preview animate__animated animate__slideInUp">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="card-label">Tu Tarjeta Digital</div>
+                    <div class="card-stat">¡Bienvenido, {{ customer.first_name }}!</div>
+                </div>
+                <div class="badge bg-white text-dark rounded-pill px-3 py-2 fw-bold" style="font-size: 0.6rem;">
+                    {% if active_card %}ACTUALIZADA{% else %}NUEVA{% endif %}
+                </div>
+            </div>
+            
+            <p class="small mt-3 mb-0 opacity-75">Promo: {{ promotion.name }}</p>
+            <div class="card-stat" style="font-size: 0.9rem;">
+                {{ active_card.current_stamps|default:0 }} de {{ promotion.total_stamps_needed }} sellos
+                {% if pending_count %}
+                    <span class="opacity-75" style="font-size: 0.75rem;">(+{{ pending_count }} en validación)</span>
+                {% endif %}
+            </div>
+            
+            <div class="stamp-dots">
+                {% for i in "12345678901234567890"|make_list %}
+                    {% if forloop.counter <= promotion.total_stamps_needed %}
+                        {% if forloop.counter <= active_card.current_stamps|default:0 %}
+                            <div class="stamp-dot active"></div>
+                        {% elif pending_count and forloop.counter > active_card.current_stamps|default:0 and forloop.counter <= active_card.current_stamps|default:0|add:pending_count %}
+                            <div class="stamp-dot active animate__animated animate__flash animate__infinite" style="opacity: 0.6; box-shadow: none;"></div>
+                        {% else %}
+                            <div class="stamp-dot"></div>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <a href="{% url 'stamps:my_stamps' %}" class="action-btn">
+            <i class="fas fa-th-large me-2"></i> Ir a mi Tablero Digital
+        </a>
+
+        <!-- Nudge Section: Profile Completion -->
+        {% if not customer.birth_day %}
+        <div class="nudge-section animate__animated animate__fadeInUp animate__delay-1s" id="nudge-area">
+            <div class="nudge-title">
+                <i class="fas fa-gift text-warning"></i> ¿Cuándo es tu cumpleaños?
+            </div>
+            <p class="text-muted" style="font-size: 0.75rem;">Regístralo para recibir regalos y promos exclusivas en tu día especial.</p>
+            
+            <form id="nudge-form">
+                {% csrf_token %}
+                <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <select class="form-select form-select-sm form-control-custom" name="birth_day" required>
+                            <option value="">Día</option>
+                            {% for i in "1234567890123456789012345678901"|make_list %}
+                                <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <select class="form-select form-select-sm form-control-custom" name="birth_month" required>
+                            <option value="">Mes</option>
+                            <option value="1">Enero</option>
+                            <option value="2">Febrero</option>
+                            <option value="3">Marzo</option>
+                            <option value="4">Abril</option>
+                            <option value="5">Mayo</option>
+                            <option value="6">Junio</option>
+                            <option value="7">Julio</option>
+                            <option value="8">Agosto</option>
+                            <option value="9">Septiembre</option>
+                            <option value="10">Octubre</option>
+                            <option value="11">Noviembre</option>
+                            <option value="12">Diciembre</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn-save-nudge" id="save-nudge-btn">
+                    <span id="btn-text">Guardar y recibir sorpresas</span>
+                    <span id="btn-loader" class="d-none px-2"><i class="fas fa-spinner fa-spin"></i></span>
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <p class="text-muted small mt-4">Powered by Pantera3000 Fidelity</p>
     </div>
-    <h3 class="fw-bold mb-3">¡Solicitud Enviada!</h3>
-    <p class="text-muted mb-4">
-        Hola <strong>{{ customer.first_name }}</strong>, tu solicitud para un nuevo sello ha sido enviada al barbero.
-    </p>
-    <div class="alert alert-info rounded-4 border-0 mb-4" style="background: #eff6ff; color: #1d4ed8;">
-        <i class="fas fa-info-circle me-2"></i> <strong>Aviso:</strong> El barbero aprobará tu sello en unos momentos despuês de verificar tu servicio.
-    </div>
-    
-    <p class="text-muted small">Ya puedes cerrar esta pestaña o seguir disfrutando de tu servicio.</p>
 </div>
+
+<!-- JS Logic for Nudge -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    document.getElementById('nudge-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btnText = document.getElementById('btn-text');
+        const btnLoader = document.getElementById('btn-loader');
+        const btn = document.getElementById('save-nudge-btn');
+        
+        btnText.innerText = "Guardando...";
+        btnLoader.classList.remove('d-none');
+        btn.disabled = true;
+
+        const formData = new FormData(this);
+        
+        fetch("{% url 'stamps:api_customer_nudge' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                document.getElementById('nudge-area').innerHTML = `
+                    <div class="text-center py-3">
+                        <i class="fas fa-check-circle text-success fs-2 mb-2"></i>
+                        <p class="fw-bold mb-0">¡Cumpleaños guardado!</p>
+                        <p class="text-muted small mb-0">Te avisaremos con algo especial pronto.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btnText.innerText = "Error, intenta de nuevo";
+            btnLoader.classList.add('d-none');
+            btn.disabled = false;
+        });
+    });
+</script>
 
 </body>
 </html>

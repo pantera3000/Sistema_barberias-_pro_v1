@@ -57,13 +57,32 @@ class PlanForm(forms.ModelForm):
             'max_staff': forms.NumberInput(attrs={'class': 'form-control'}),
             'max_appointments_monthly': forms.NumberInput(attrs={'class': 'form-control'}),
             'max_campaigns_monthly': forms.NumberInput(attrs={'class': 'form-control'}),
+            # Módulos
+            'enable_customers': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_services': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_points': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_stamps': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_rewards': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_appointments': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'enable_whatsapp': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'enable_reports': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_subscriptions': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_integrations': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_gamification': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'enable_audit': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'enable_stamps': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'enable_points': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'enable_appointments': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            
+            # Sub-módulos
+            'enable_customers_import_csv': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_customers_export_data': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_reports_export_pdf': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_campaigns_whatsapp_manual': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_campaigns_auto_notifications': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_campaigns_pabbly': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_appointments_online_booking': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'enable_gamification_referrals': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 class SystemAnnouncementForm(forms.ModelForm):

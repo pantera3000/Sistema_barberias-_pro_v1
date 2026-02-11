@@ -351,7 +351,7 @@
     let searchTimeout = null;
 
     if (realTimeSearchInput) {
-        function performAjaxSearch() {
+        window.performAjaxSearch = function() {
             const query = realTimeSearchInput.value;
             const url = new URL(window.location.href);
             url.searchParams.set('q', query);
@@ -382,20 +382,62 @@
                 console.error('Error en búsqueda AJAX:', error);
                 gridContainer.style.opacity = '1';
             });
-        }
+        };
 
         realTimeSearchInput.addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(performAjaxSearch, 300);
+            searchTimeout = setTimeout(window.performAjaxSearch, 300);
         });
 
         if (searchFormBtn) {
             searchFormBtn.closest('form').addEventListener('submit', function(e) {
                 e.preventDefault();
-                performAjaxSearch();
+                window.performAjaxSearch();
             });
         }
     }
+
+    // --- Approval logic ---
+    window.approvePendingQR = function(requestId, btn) {
+        if (!confirm('¿Aprobar esta solicitud de sello QR?')) return;
+        
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> PROCESANDO...';
+        
+        const formData = new FormData();
+        formData.append('action', 'approve');
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        
+        fetch(`/app/stamps/api/requests/${requestId}/resolve/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' || data.status === 'ok') {
+                // Sello aprobado. Recargar la grilla para mostrar el cambio
+                if (window.performAjaxSearch) {
+                    window.performAjaxSearch();
+                } else {
+                    location.reload();
+                }
+            } else {
+                alert('Error: ' + (data.error || 'No se pudo aprobar la solicitud'));
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error al conectar con el servidor');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    };
 
     // --- Global History Loader ---
     let historyModalInstance = null;

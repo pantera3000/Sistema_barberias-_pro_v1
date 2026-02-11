@@ -41,7 +41,8 @@ class Organization(models.Model):
     closing_time = models.TimeField(default='21:00:00', verbose_name="Hora de Cierre")
     
     # Configuración de Seguridad
-    stamp_lock_hours = models.PositiveIntegerField(default=2, verbose_name="Horas de bloqueo entre sellos")
+    stamp_lock_hours = models.PositiveIntegerField(default=2, verbose_name="Horas de espera (Cooldown)")
+    stamp_lock_minutes = models.PositiveIntegerField(default=0, verbose_name="Minutos de espera (Cooldown)")
     stamps_expiration_months = models.PositiveIntegerField(default=0, verbose_name="Meses de vigencia de tarjetas (0 = sin límite)")
     
     # Días de Sello Doble
@@ -92,7 +93,14 @@ class Organization(models.Model):
         if not self.slug:
             self.slug = slugify(self.name)
         
-        # Detectar si el plan cambió
+        # 1. Asignar plan por defecto si no tiene uno
+        if not self.plan:
+            from apps.superadmin.models import Plan
+            default_plan = Plan.objects.filter(is_default=True, is_active=True).first()
+            if default_plan:
+                self.plan = default_plan
+
+        # 2. Detectar si el plan cambió
         plan_changed = False
         if self.pk:
             old_instance = Organization.objects.get(pk=self.pk)
@@ -109,36 +117,92 @@ class Organization(models.Model):
 
     def sync_with_plan(self):
         """Sincroniza los usage limits y feature flags con el plan actual."""
-        if not self.plan:
-            return
+        # 1. Preparar mapas de límites y features (usar defaults si no hay plan)
+        if self.plan:
+            limits_map = {
+                'customers': self.plan.max_customers,
+                'staff': self.plan.max_staff,
+                'appointments_monthly': self.plan.max_appointments_monthly,
+                'campaigns_monthly': self.plan.max_campaigns_monthly,
+            }
+            features_map = {
+                'customers': self.plan.enable_customers,
+                'services': self.plan.enable_services,
+                'points': self.plan.enable_points,
+                'stamps': self.plan.enable_stamps,
+                'rewards': self.plan.enable_rewards,
+                'appointments': self.plan.enable_appointments,
+                'campaigns': self.plan.enable_whatsapp,
+                'reports': self.plan.enable_reports,
+                'subscriptions': self.plan.enable_subscriptions,
+                'integrations': self.plan.enable_integrations,
+                'gamification': self.plan.enable_gamification,
+                'audit': self.plan.enable_audit,
+                
+                # Funcionalidades específicas
+                'customers.import_csv': self.plan.enable_customers_import_csv,
+                'customers.export_data': self.plan.enable_customers_export_data,
+                'reports.export_pdf': self.plan.enable_reports_export_pdf,
+                'campaigns.whatsapp_manual': self.plan.enable_campaigns_whatsapp_manual,
+                'campaigns.auto_notifications': self.plan.enable_campaigns_auto_notifications,
+                'campaigns.pabbly': self.plan.enable_campaigns_pabbly,
+                'appointments.online_booking': self.plan.enable_appointments_online_booking,
+                'gamification.referrals': self.plan.enable_gamification_referrals,
+            }
+        else:
+            # Límites por defecto para negocios sin plan (Gratis/Basic)
+            limits_map = {
+                'customers': 10,
+                'staff': 2,
+                'appointments_monthly': 0,
+                'campaigns_monthly': 0,
+            }
+            features_map = {
+                'customers': True,
+                'services': True,
+                'points': True,
+                'stamps': True,
+                'rewards': False,
+                'appointments': False,
+                'campaigns': False,
+                'reports': False,
+                'subscriptions': False,
+                'integrations': False,
+                'gamification': False,
+                'audit': False,
+                'customers.import_csv': False,
+                'customers.export_data': False,
+                'reports.export_pdf': False,
+                'campaigns.whatsapp_manual': False,
+                'campaigns.auto_notifications': False,
+                'campaigns.pabbly': False,
+                'appointments.online_booking': False,
+                'gamification.referrals': False,
+            }
 
-        # 1. Sincronizar UsageLimits
-        limits_map = {
-            'customers': self.plan.max_customers,
-            'staff': self.plan.max_staff,
-            'appointments_monthly': self.plan.max_appointments_monthly,
-            'campaigns_monthly': self.plan.max_campaigns_monthly,
+        # 2. Sincronizar UsageLimits
+        from apps.customers.models import Customer
+        from apps.users.models import User
+        
+        counts_map = {
+            'customers': Customer.objects.filter(organization=self).count(),
+            'staff': User.objects.filter(organization=self, is_staff_member=True).count(),
+            'appointments_monthly': 0,
+            'campaigns_monthly': 0,
         }
 
         for limit_type, value in limits_map.items():
             limit_obj, created = UsageLimit.objects.get_or_create(
                 organization=self,
                 limit_type=limit_type,
-                defaults={'limit_value': value}
+                defaults={'limit_value': value, 'current_usage': counts_map.get(limit_type, 0)}
             )
             if not created:
                 limit_obj.limit_value = value
+                limit_obj.current_usage = counts_map.get(limit_type, 0)
                 limit_obj.save()
 
-        # 2. Sincronizar FeatureFlags
-        features_map = {
-            'campaigns': self.plan.enable_whatsapp,
-            'reports': self.plan.enable_reports,
-            'audit': self.plan.enable_audit,
-            'stamps': self.plan.enable_stamps,
-            'points': self.plan.enable_points,
-            'appointments': self.plan.enable_appointments,
-        }
+        # 3. Sincronizar FeatureFlags
 
         for feature_key, is_enabled in features_map.items():
             feature_obj, created = FeatureFlag.objects.get_or_create(
@@ -248,9 +312,11 @@ class UsageLimit(models.Model):
     
     @property
     def usage_percentage(self):
-        if self.limit_value <= 0:
+        if self.limit_value == -1: # Ilimitado
             return 0
-        return (self.current_usage / self.limit_value) * 100
+        if self.limit_value <= 0:
+            return 100 if self.current_usage > 0 else 0
+        return int(min(100, (self.current_usage / self.limit_value) * 100))
 
 class TenantAwareModel(models.Model):
     """

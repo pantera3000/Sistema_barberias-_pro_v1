@@ -65,11 +65,15 @@ def customer_detail(request, pk):
     """Perfil detallado del cliente"""
     customer = get_object_or_404(Customer, pk=pk, organization=request.tenant)
     
+    # --- Módulo de Sellos ---
     # Obtener tarjetas de sellos (activas e historial)
     stamp_cards = StampCard.objects.filter(customer=customer).order_by('-created_at')
     
     # Premios listos para canjear (completadas pero no canjeadas)
     rewards_ready = stamp_cards.filter(is_completed=True, is_redeemed=False).count()
+    
+    # NUEVO: Tarjetas que han SOLICITADO el premio específicamente
+    requested_cards = stamp_cards.filter(redemption_requested=True, is_redeemed=False)
 
     # Obtener historial de puntos (si aplica)
     point_transactions = []
@@ -165,6 +169,7 @@ def customer_detail(request, pk):
         'customer': customer,
         'stamp_cards': stamp_cards,
         'rewards_ready': rewards_ready,
+        'requested_cards': requested_cards,
         'point_transactions': point_transactions,
         'adn': adn,
         'birthday_info': birthday_info,
@@ -177,6 +182,13 @@ def customer_detail(request, pk):
 @login_required
 def customer_create(request):
     """Crear nuevo cliente"""
+    # Verificación de límites (Suscripción)
+    from apps.core.models import UsageLimit
+    cust_limit = UsageLimit.objects.filter(organization=request.tenant, limit_type='customers').first()
+    if cust_limit and cust_limit.enforce_limit and cust_limit.is_exceeded:
+        messages.warning(request, "⚠️ Has alcanzado el límite de clientes de tu plan. Mejora tu suscripción para seguir registrando clienes.")
+        return redirect('customers:customer_list')
+
     if request.method == 'POST':
         form = CustomerForm(request.POST, tenant=request.tenant)
         if form.is_valid():

@@ -16,7 +16,7 @@ class PointAssignmentForm(forms.ModelForm):
         model = PointTransaction
         fields = ['customer', 'transaction_type', 'points', 'description']
         widgets = {
-            'customer': forms.Select(attrs={'class': 'form-select'}),
+            'customer': forms.HiddenInput(),
             'transaction_type': forms.Select(attrs={'class': 'form-select'}),
             'points': forms.NumberInput(attrs={'class': 'form-control'}),
             'description': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Bono por cumpleaños'}),

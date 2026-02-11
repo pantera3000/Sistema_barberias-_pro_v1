@@ -71,7 +71,9 @@
             </div>
 
             <div class="card-body p-4 p-md-5">
-                <h5 class="fw-bold text-dark mb-1">{{ customer.full_name }}</h5>
+                <a href="{% url 'customers:customer_detail' customer.id %}" class="text-decoration-none">
+                    <h5 class="fw-bold text-dark mb-1 hover-opacity">{{ customer.full_name }}</h5>
+                </a>
                 <p class="text-muted small mb-4">{{ card.promotion.name }}</p>
 
                 <div class="progress-visual">
