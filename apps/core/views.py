@@ -39,7 +39,12 @@ def tenant_dashboard(request):
     if not tenant:
         return render(request, 'core/no_organization.html')
         
-    today = timezone.now().date()
+    today = timezone.localtime().date()
+    if tenant and hasattr(tenant, 'timezone') and tenant.timezone:
+        import zoneinfo
+        try:
+            today = timezone.now().astimezone(zoneinfo.ZoneInfo(tenant.timezone)).date()
+        except: pass
     
     # --- Estadísticas Clave ---
     
@@ -78,7 +83,7 @@ def tenant_dashboard(request):
 def dashboard_stats_api(request):
     """API que devuelve datos para los gráficos del dashboard"""
     tenant = getattr(request, 'tenant', None) or request.user.organization
-    last_30_days = timezone.now().date() - timedelta(days=30)
+    last_30_days = timezone.localtime().date() - timedelta(days=30)
     
     # 1. Crecimiento de Clientes (Línea)
     customer_growth = Customer.objects.filter(
@@ -154,8 +159,15 @@ def owner_dashboard(request):
         messages.error(request, "Acceso denegado.")
         return redirect('core:dashboard')
         
-    today = timezone.now().date()
-    now_time = timezone.now().time()
+    today = timezone.localtime().date()
+    now_time = timezone.localtime().time()
+    if tenant and hasattr(tenant, 'timezone') and tenant.timezone:
+        import zoneinfo
+        try:
+            local_now = timezone.now().astimezone(zoneinfo.ZoneInfo(tenant.timezone))
+            today = local_now.date()
+            now_time = local_now.time()
+        except: pass
     
     # 1. Ranking de Barberos (Hoy)
     # Contamos transacciones por usuario hoy

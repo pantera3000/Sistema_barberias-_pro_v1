@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitudes QR Pendientes - {{ request.tenant.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4 align-items-center">
+        <div class="col">
+            <h2 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-qrcode text-primary me-2"></i> Solicitudes de Sellos QR Pendientes
+            </h2>
+            <p class="text-muted mb-0">Gestiona las solicitudes enviadas por tus clientes desde su móvil.</p>
+        </div>
+        <div class="col-auto">
+            <div class="badge bg-primary px-3 py-2 rounded-pill">
+                <span id="qrPageCount">{{ pending_count }}</span> Pendientes
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Solicitudes -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">Cliente</th>
+                            <th>Contacto</th>
+                            <th>Promoción</th>
+                            <th>Hora</th>
+                            <th class="text-end pe-4">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="qrRequestsTableBody">
+                        <!-- Se llenará vía AJAX -->
+                        <tr id="emptyRow" style="display: none;">
+                            <td colspan="5" class="py-5 text-center text-muted">
+                                <div class="mb-3">
+                                    <i class="fas fa-check-circle fa-3x text-success opacity-25"></i>
+                                </div>
+                                <p class="mb-0 fw-bold">No hay solicitudes pendientes en este momento.</p>
+                                <small>Las nuevas solicitudes aparecerán aquí automáticamente.</small>
+                            </td>
+                        </tr>
+                        <tr id="loadingRow">
+                            <td colspan="5" class="py-5 text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Buscando solicitudes...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadPendingRequests() {
+        const tableBody = document.getElementById('qrRequestsTableBody');
+        const pageCount = document.getElementById('qrPageCount');
+        const emptyRow = document.getElementById('emptyRow');
+        const loadingRow = document.getElementById('loadingRow');
+
+        fetch("{% url 'stamps:get_pending_requests' %}")
+            .then(response => response.json())
+            .then(data => {
+                loadingRow.style.display = 'none';
+                
+                // Limpiar filas anteriores excepto las especiales
+                const rows = tableBody.querySelectorAll('tr:not(#emptyRow):not(#loadingRow)');
+                rows.forEach(r => r.remove());
+
+                if (data.requests.length === 0) {
+                    emptyRow.style.display = 'table-row';
+                    pageCount.innerText = "0";
+                } else {
+                    emptyRow.style.display = 'none';
+                    pageCount.innerText = data.requests.length;
+
+                    data.requests.forEach(req => {
+                        const tr = document.createElement('tr');
+                        tr.id = `request-row-${req.id}`;
+                        tr.innerHTML = `
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">${req.customer_name}</div>
+                            </td>
+                            <td>
+                                <div class="small"><i class="fab fa-whatsapp text-success me-1"></i> ${req.customer_phone}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2">
+                                    ${req.promotion_name}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-muted small">${req.requested_at}</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <button onclick="resolveRequest(${req.id}, 'approve')" class="btn btn-success btn-sm rounded-pill px-3 me-2">
+                                    <i class="fas fa-check me-1"></i> Aprobar
+                                </button>
+                                <button onclick="resolveRequest(${req.id}, 'reject')" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                    <i class="fas fa-times me-1"></i> Rechazar
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+            });
+    }
+
+    function resolveRequest(id, action) {
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        const row = document.getElementById(`request-row-${id}`);
+        row.style.opacity = '0.5';
+        row.style.pointerEvents = 'none';
+
+        fetch(`/app/stamps/api/requests/${id}/resolve/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                row.remove();
+                loadPendingRequests(); // Recargar para actualizar contadores y estados
+            } else {
+                alert("Error: " + data.error);
+                row.style.opacity = '1';
+                row.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    // Polling cada 10 segundos en esta página
+    setInterval(loadPendingRequests, 10000);
+    loadPendingRequests();
+</script>
+{% endblock %}

@@ -18,4 +18,8 @@ urlpatterns = [
     path('my-stamps/', views.my_stamps, name='my_stamps'),
     path('kiosk/', views.customer_kiosk, name='customer_kiosk'),
     path('my-stamps/request/<int:pk>/', views.request_redemption, name='request_redemption'),
+    # API Management
+    path('requests/', views.pending_requests_list, name='pending_requests_list'),
+    path('api/requests/pending/', views.get_pending_requests, name='get_pending_requests'),
+    path('api/requests/<int:pk>/resolve/', views.resolve_stamp_request, name='resolve_stamp_request'),
 ]

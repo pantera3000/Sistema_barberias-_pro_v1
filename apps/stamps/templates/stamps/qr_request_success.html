@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud Enviada - {{ organization.name }}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: {{ organization.primary_color|default:"#3B82F6" }};
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .success-card {
+            background: #ffffff;
+            border-radius: 30px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            padding: 50px 30px;
+            text-align: center;
+            width: 100%;
+            max-width: 450px;
+            border: none;
+        }
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: #dcfce7;
+            color: #22c55e;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin: 0 auto 30px;
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .btn-done {
+            background: #1e293b;
+            color: white;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        .btn-done:hover {
+            background: #0f172a;
+            color: white;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="success-card">
+    <div class="success-icon">
+        <i class="fas fa-check"></i>
+    </div>
+    <h3 class="fw-bold mb-3">¡Solicitud Enviada!</h3>
+    <p class="text-muted mb-4">
+        Hola <strong>{{ customer.first_name }}</strong>, tu solicitud para un nuevo sello ha sido enviada al barbero.
+    </p>
+    <div class="alert alert-info rounded-4 border-0 mb-4" style="background: #eff6ff; color: #1d4ed8;">
+        <i class="fas fa-info-circle me-2"></i> <strong>Aviso:</strong> El barbero aprobará tu sello en unos momentos despuês de verificar tu servicio.
+    </div>
+    
+    <p class="text-muted small">Ya puedes cerrar esta pestaña o seguir disfrutando de tu servicio.</p>
+</div>
+
+</body>
+</html>

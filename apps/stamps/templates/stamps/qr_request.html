@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitar Sello - {{ organization.name }}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: {{ organization.primary_color|default:"#3B82F6" }};
+            --bg-gradient: linear-gradient(135deg, var(--primary-color) 0%, #1e293b 100%);
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .request-card {
+            background: #ffffff;
+            border-radius: 30px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            border: none;
+            position: relative;
+        }
+        .card-header-gradient {
+            background: var(--bg-gradient);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        .logo-container {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 20px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            font-size: 2rem;
+            color: var(--primary-color);
+            overflow: hidden;
+        }
+        .logo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .promo-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .form-control {
+            border-radius: 15px;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: none;
+        }
+        .btn-request {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 15px;
+            padding: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            transition: all 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-request:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            color: white;
+        }
+        .icon-floating {
+            position: absolute;
+            font-size: 5rem;
+            opacity: 0.05;
+            color: white;
+            pointer-events: none;
+        }
+        .floating-1 { top: -10px; left: -10px; transform: rotate(-15deg); }
+        .floating-2 { bottom: -10px; right: -10px; transform: rotate(15deg); }
+        
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+        .step.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        .step-line {
+            height: 2px;
+            width: 30px;
+            background: #e2e8f0;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="request-card">
+    <div class="card-header-gradient">
+        <i class="fas fa-scissors icon-floating floating-1"></i>
+        <i class="fas fa-hand-sparkles icon-floating floating-2"></i>
+        
+        <div class="logo-container">
+            {% if organization.logo %}
+                <img src="{{ organization.logo.url }}" alt="{{ organization.name }}">
+            {% else %}
+                <i class="fas fa-shop"></i>
+            {% endif %}
+        </div>
+        <h4 class="mb-0 fw-bold">{{ organization.name }}</h4>
+        <div class="promo-badge">
+            <i class="fas fa-star me-1"></i> {{ promotion.name }}
+        </div>
+    </div>
+    
+    <div class="p-4 p-md-5">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} rounded-4 border-0 shadow-sm" role="alert">
+                    <i class="fas fa-info-circle me-2"></i> {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        <div class="text-center mb-4">
+            <h5 class="fw-bold text-dark">¿Terminaste tu servicio?</h5>
+            <p class="text-muted small">Digita tu número para pedir tu sello de premio.</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active">1</div>
+            <div class="step-line"></div>
+            <div class="step active">2</div>
+            <div class="step-line"></div>
+            <div class="step">3</div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-uppercase text-muted">¿Cómo te llamas?</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-2 border-end-0 rounded-start-4" style="border-radius: 15px 0 0 15px;">
+                        <i class="fas fa-user text-muted"></i>
+                    </span>
+                    <input type="text" name="first_name" class="form-control border-start-0" placeholder="Ej: Juan (Opcional)" style="border-radius: 0 15px 15px 0;">
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label small fw-bold text-uppercase text-muted">Tu WhatsApp / Teléfono</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-2 border-end-0 rounded-start-4" style="border-radius: 15px 0 0 15px;">
+                        <i class="fab fa-whatsapp text-success fw-bold"></i>
+                    </span>
+                    <input type="tel" name="phone" class="form-control border-start-0" placeholder="Ej: 956956xxx" required style="border-radius: 0 15px 15px 0;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-request d-flex align-items-center justify-content-center">
+                <i class="fas fa-paper-plane me-2"></i> Solicitar mi Sello
+            </button>
+            
+            <p class="text-center mt-4 mb-0 text-muted" style="font-size: 0.75rem;">
+                <i class="fas fa-shield-alt me-1"></i> El barbero recibirá tu solicitud al instante.
+            </p>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

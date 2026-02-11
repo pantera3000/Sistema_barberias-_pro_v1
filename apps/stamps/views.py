@@ -2,12 +2,156 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.db import models, transaction
 from .models import StampPromotion, StampCard, StampTransaction
 from .forms import StampPromotionForm, StampAssignmentForm
 from django.core.paginator import Paginator
 from apps.customers.models import Customer
 from apps.audit.utils import log_action
+from apps.core.models import Organization, set_current_tenant
+from .models import StampPromotion, StampCard, StampTransaction, StampRequest
+from django.utils import timezone
+
+def qr_request_stamp(request, slug):
+    """Vista pública para solicitar un sello vía QR"""
+    organization = get_object_or_404(Organization, slug=slug, is_active=True)
+    set_current_tenant(organization)
+    
+    # Buscar una promoción activa (la más reciente)
+    promotion = StampPromotion.objects.filter(organization=organization, is_active=True).last()
+    
+    if not promotion:
+        return render(request, 'stamps/qr_request_error.html', {
+            'organization': organization,
+            'error': 'No hay promociones de sellos vigentes en este momento.'
+        })
+
+    if request.method == 'POST':
+        phone = request.POST.get('phone', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        
+        if not phone:
+            messages.error(request, "El número de teléfono es obligatorio.")
+        else:
+            # Buscar o crear cliente
+            customer, created = Customer.objects.get_or_create(
+                phone=phone,
+                organization=organization,
+                defaults={'first_name': first_name or 'Cliente QR'}
+            )
+            
+            # Crear solicitud
+            StampRequest.objects.create(
+                customer=customer,
+                promotion=promotion,
+                organization=organization
+            )
+            
+            return render(request, 'stamps/qr_request_success.html', {
+                'organization': organization,
+                'customer': customer
+            })
+            
+    return render(request, 'stamps/qr_request.html', {
+        'organization': organization,
+        'promotion': promotion
+    })
+
+@login_required
+def get_pending_requests(request):
+    """API para obtener solicitudes de sellos pendientes"""
+    if not hasattr(request, 'tenant'):
+        return JsonResponse({'error': 'No tenant'}, status=400)
+    
+    requests = StampRequest.objects.filter(
+        organization=request.tenant, 
+        status='PENDING'
+    ).select_related('customer', 'promotion')
+    
+    data = []
+    for r in requests:
+        data.append({
+            'id': r.id,
+            'customer_name': r.customer.full_name,
+            'customer_phone': r.customer.phone,
+            'promotion_name': r.promotion.name,
+            'requested_at': timezone.localtime(r.requested_at).strftime('%H:%M'),
+        })
+    
+    return JsonResponse({'requests': data})
+
+@login_required
+@transaction.atomic
+def resolve_stamp_request(request, pk):
+    """Aprobar o rechazar una solicitud de sello"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    stamp_request = get_object_or_404(StampRequest, pk=pk, organization=request.tenant)
+    action = request.POST.get('action') # 'approve' or 'reject'
+    
+    if stamp_request.status != 'PENDING':
+        return JsonResponse({'error': 'Solicitud ya procesada'}, status=400)
+        
+    if action == 'approve':
+        # Obtener o crear tarjeta
+        card, created = StampCard.objects.get_or_create(
+            customer=stamp_request.customer,
+            promotion=stamp_request.promotion,
+            organization=request.tenant,
+            is_completed=False,
+            is_redeemed=False
+        )
+        
+        # Añadir sello
+        card.current_stamps += 1
+        if card.current_stamps >= card.promotion.total_stamps_needed:
+            card.is_completed = True
+        card.save()
+        
+        # Registrar transacción
+        StampTransaction.objects.create(
+            card=card,
+            action='ADD',
+            quantity=1,
+            performed_by=request.user,
+            organization=request.tenant
+        )
+        
+        # Registrar auditoría
+        log_action(
+            request,
+            'STAMP_REQUEST_APPROVED',
+            'Sello QR',
+            f"Sello aprobado vía QR para {stamp_request.customer.full_name}",
+            customer=stamp_request.customer
+        )
+        
+        stamp_request.status = 'APPROVED'
+    else:
+        stamp_request.status = 'REJECTED'
+        
+    stamp_request.resolved_at = timezone.now()
+    stamp_request.resolved_by = request.user
+    stamp_request.save()
+    
+    return JsonResponse({'status': 'ok', 'new_status': stamp_request.status})
+
+@login_required
+def pending_requests_list(request):
+    """Vista para gestionar solicitudes de sellos QR pendientes"""
+    if not hasattr(request, 'tenant'):
+        return redirect('users:login')
+        
+    pending_count = StampRequest.objects.filter(
+        organization=request.tenant, 
+        status='PENDING'
+    ).count()
+    
+    return render(request, 'stamps/pending_requests.html', {
+        'pending_count': pending_count
+    })
 
 @login_required
 def promotion_list(request):
@@ -101,7 +245,7 @@ def card_list(request):
         )
 
     from django.utils import timezone
-    today = timezone.now().date()
+    today = timezone.localtime().date()
     
     # Filtrar tarjetas expiradas del listado general (en memoria ya que depends de una property)
     cards = [c for c in cards if not c.is_expired]

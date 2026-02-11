@@ -66,7 +66,7 @@ class Organization(models.Model):
     def is_double_stamp_day(self):
         """Verifica si hoy es un día de sello doble"""
         from django.utils import timezone
-        weekday = timezone.now().weekday()
+        weekday = timezone.localtime().weekday()
         days_map = {
             0: self.double_stamp_mon, 1: self.double_stamp_tue, 2: self.double_stamp_wed,
             3: self.double_stamp_thu, 4: self.double_stamp_fri, 5: self.double_stamp_sat,

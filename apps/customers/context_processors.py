@@ -16,7 +16,16 @@ def birthday_celebrants(request):
     if not organization:
         return {}
         
-    today = timezone.now().date()
+    today = timezone.localtime().date()
+    
+    # Si por alguna razón localtime no está funcionando, forzamos la zona del tenant
+    if organization and hasattr(organization, 'timezone') and organization.timezone:
+        import zoneinfo
+        try:
+            tz = zoneinfo.ZoneInfo(organization.timezone)
+            today = timezone.now().astimezone(tz).date()
+        except Exception:
+            pass
     
     # Filter customers of this organization whose birthday is today (month & day)
     celebrants = Customer.objects.filter(

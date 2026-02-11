@@ -11,7 +11,7 @@ class Command(BaseCommand):
     help = 'Envía saludos de cumpleaños automáticos a los clientes.'
 
     def handle(self, *args, **options):
-        today = timezone.now().date()
+        today = timezone.localtime().date()
         
         # 1. Buscar clientes que celebran cumpleaños hoy
         # Filtramos por día y mes únicamente

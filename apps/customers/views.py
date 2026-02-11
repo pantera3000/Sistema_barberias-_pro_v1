@@ -21,7 +21,12 @@ def customer_list(request):
          
     query = request.GET.get('q', '')
     from django.db.models import Case, When, Value, IntegerField
-    today = timezone.now().date()
+    today = timezone.localtime().date()
+    if request.tenant and hasattr(request.tenant, 'timezone') and request.tenant.timezone:
+        import zoneinfo
+        try:
+            today = timezone.now().astimezone(zoneinfo.ZoneInfo(request.tenant.timezone)).date()
+        except: pass
     
     customers = Customer.objects.filter(organization=request.tenant).annotate(
         is_birthday_today=Case(
@@ -116,7 +121,12 @@ def customer_detail(request, pk):
     }
     if customer.birth_day and customer.birth_month:
         try:
-            today = timezone.now().date()
+            today = timezone.localtime().date()
+            if request.tenant and hasattr(request.tenant, 'timezone') and request.tenant.timezone:
+                import zoneinfo
+                try:
+                    today = timezone.now().astimezone(zoneinfo.ZoneInfo(request.tenant.timezone)).date()
+                except: pass
             # Crear fecha de cumple para este año
             this_year_bday = today.replace(month=customer.birth_month, day=customer.birth_day)
             

@@ -1,3 +1,4 @@
+from django.utils import timezone
 from .models import Domain, set_current_tenant
 from django.utils.deprecation import MiddlewareMixin
 from django.shortcuts import redirect
@@ -18,6 +19,15 @@ class TenantMiddleware(MiddlewareMixin):
 
         request.tenant = tenant
         set_current_tenant(tenant)
+        
+        # Activar la zona horaria del tenant
+        if tenant and hasattr(tenant, 'timezone') and tenant.timezone:
+            try:
+                timezone.activate(tenant.timezone)
+            except Exception:
+                timezone.deactivate()
+        else:
+            timezone.deactivate()
 
 class FeatureRestrictionMiddleware(MiddlewareMixin):
     def process_request(self, request):

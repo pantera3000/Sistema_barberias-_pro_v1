@@ -48,6 +48,16 @@
             50% { transform: scale(1.1); }
             100% { transform: scale(1); }
         }
+
+        /* QR Pulse Animation */
+        @keyframes qr-pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .qr-badge-pulse {
+            animation: qr-pulse 1.5s infinite;
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -72,13 +82,24 @@
     .birthday-banner { font-size: 0.95rem; }
 </style>
 {% endif %}
+
+<!-- Banner de Solicitudes QR Pendientes -->
+<div id="qrPendingBanner" class="py-2 text-white text-center shadow-sm" style="display: none; background: linear-gradient(90deg, #f59e0b, #d97706); z-index: 1049; position: relative;">
+    <div class="container-fluid">
+        <i class="fas fa-bell me-2 animate-bounce"></i>
+        <strong>¡Atención!</strong> Tienes <span id="qrBannerCount">0</span> solicitudes de sellos QR por aprobar.
+        <a href="{% url 'stamps:pending_requests_list' %}" class="btn btn-sm btn-light ms-3 rounded-pill px-3 fw-bold" style="color: #d97706; font-size: 0.75rem;">
+            Ver Solicitudes
+        </a>
+    </div>
+</div>
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
         {% if user.is_authenticated %}
         <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse pt-3">
             <div class="position-sticky">
-                <div class="d-flex align-items-center justify-content-between px-3 mb-4">
+                <div class="d-flex align-items-center justify-content-between px-3 mb-2">
                     <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cut"></i> Loyalty System</h5>
                     {% if has_birthday_today %}
                     <div class="birthday-widget" data-bs-toggle="modal" data-bs-target="#birthdayListModal" title="¡Hay cumpleañeros!">
@@ -87,6 +108,15 @@
                         </div>
                         <span class="birthday-badge">{{ birthday_celebrants.count }}</span>
                     </div>
+                    {% endif %}
+                </div>
+                <!-- Reloj Global -->
+                <div class="px-3 mb-4 text-muted small fw-bold">
+                    <i class="far fa-clock me-1 text-primary"></i> <span id="globalClock">--:--:--</span>
+                    {% if request.tenant.timezone %}
+                        <div class="text-xs opacity-75 mt-n1" style="font-size: 0.65rem;">
+                             ZONA: {{ request.tenant.timezone }}
+                        </div>
                     {% endif %}
                 </div>
                 <ul class="nav flex-column">
@@ -119,6 +149,7 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            <span id="qrSidebarBadge" class="badge bg-danger rounded-pill float-end mt-1" style="display: none; font-size: 0.7rem;">0</span>
                         </a>
                     </li>
                     {% if user.has_feature_points %}
@@ -141,6 +172,11 @@
                                 <li class="nav-item">
                                     <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'card_list' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:card_list' %}">
                                         <i class="fas fa-list me-1"></i> Listado
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'pending_requests_list' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:pending_requests_list' %}">
+                                        <i class="fas fa-qrcode me-1"></i> Solicitudes QR
                                     </a>
                                 </li>
                                 <li class="nav-item">
@@ -352,5 +388,126 @@
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% block extra_js %}{% endblock %}
+<script>
+    {% if user.is_authenticated and request.tenant %}
+    // --- Polling de Solicitudes QR ---
+    // Recuperar el último conteo de la sesión para no sonar en cada recarga
+    let lastQRCount = parseInt(sessionStorage.getItem('last_qr_count') || '0');
+
+    function updateSidebarQRBadge() {
+        fetch("{% url 'stamps:get_pending_requests' %}")
+            .then(response => response.json())
+            .then(data => {
+                const count = (data.requests || []).length;
+                const badge = document.getElementById('qrSidebarBadge');
+                const banner = document.getElementById('qrPendingBanner');
+                const bannerCount = document.getElementById('qrBannerCount');
+                const toastEl = document.getElementById('qrToast');
+                const sound = document.getElementById('qrNotificationSound');
+
+                // 1. Actualizar Badge Lateral
+                if (badge) {
+                    if (count > 0) {
+                        badge.innerText = count;
+                        badge.style.display = 'inline-block';
+                        badge.classList.add('qr-badge-pulse');
+                    } else {
+                        badge.style.display = 'none';
+                        badge.classList.remove('qr-badge-pulse');
+                    }
+                }
+
+                // 2. Actualizar Banner Superior
+                if (banner && bannerCount) {
+                    if (count > 0) {
+                        bannerCount.innerText = count;
+                        banner.style.display = 'block';
+                    } else {
+                        banner.style.display = 'none';
+                    }
+                }
+
+                // 3. Notificar Novedades (Toast + Sonido)
+                if (count > lastQRCount) {
+                    // Solo si aumentó el número de solicitudes respecto a lo que ya sabíamos en esta sesión
+                    if (toastEl && typeof bootstrap !== 'undefined') {
+                        const toast = new bootstrap.Toast(toastEl);
+                        toast.show();
+                    }
+                    if (sound) {
+                        // Intentar reproducir sonido (puede fallar si no hay interacción previa)
+                        sound.play().catch(e => console.log("Audio play blocked by browser. Interaction needed."));
+                    }
+                }
+                
+                // Actualizar tanto la variable local como la memoria de la sesión
+                lastQRCount = count;
+                sessionStorage.setItem('last_qr_count', count);
+            })
+            .catch(err => console.log("QR Poll inactive"));
+    }
+    setInterval(updateSidebarQRBadge, 15000);
+    updateSidebarQRBadge(); 
+
+    // --- Reloj Global (Sincronizado con el Servidor) ---
+    // Inicializamos con la hora del servidor (activada por el middleware)
+    {% with now_local=now %}
+    let serverTime = new Date("{% now 'Y-m-d H:i:s' %}");
+    {% endwith %}
+
+    function updateGlobalClock() {
+        const clockElement = document.getElementById('globalClock');
+        if (!clockElement) return;
+
+        // Incrementar 1 segundo
+        serverTime.setSeconds(serverTime.getSeconds() + 1);
+
+        // Formatear (HH:MM:SS)
+        const hh = String(serverTime.getHours()).padStart(2, '0');
+        const mm = String(serverTime.getMinutes()).padStart(2, '0');
+        const ss = String(serverTime.getSeconds()).padStart(2, '0');
+        const dd = serverTime.getDate();
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const mmm = months[serverTime.getMonth()];
+        
+        clockElement.innerText = `${dd} ${mmm} - ${hh}:${mm}:${ss}`;
+    }
+    setInterval(updateGlobalClock, 1000);
+    updateGlobalClock();
+    {% endif %}
+</script>
+
+<!-- Contenedor para Toasts (Avisos flotantes) -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+    <div id="qrToast" class="toast hide border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true" style="border-radius: 15px;">
+        <div class="toast-header bg-warning text-white" style="border-radius: 15px 15px 0 0;">
+            <i class="fas fa-qrcode me-2"></i>
+            <strong class="me-auto">Nueva Solicitud QR</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body bg-white py-3" style="border-radius: 0 0 15px 15px;">
+            <div class="d-flex align-items-center">
+                <div class="icon-shape bg-warning bg-opacity-10 text-warning rounded-circle p-3 me-3">
+                    <i class="fas fa-user-plus fa-lg"></i>
+                </div>
+                <div>
+                    <p class="mb-0 fw-bold text-dark">Un cliente está esperando un sello.</p>
+                    <small class="text-muted">Ve a Solicitudes QR para aprobar.</small>
+                </div>
+            </div>
+            <div class="mt-3 pt-2 border-top">
+                <a href="{% url 'stamps:pending_requests_list' %}" class="btn btn-warning btn-sm w-100 text-white fw-bold rounded-pill">
+                    Ver Solicitudes
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Elemento de Audio para Notificación -->
+<audio id="qrNotificationSound" preload="auto">
+    <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+</audio>
+
 </body>
 </html>

@@ -17,9 +17,9 @@ def transaction_report(request):
     end_date = request.GET.get('end_date')
     
     if not start_date:
-        start_date = (timezone.now() - timedelta(days=30)).date().isoformat()
+        start_date = (timezone.localtime() - timedelta(days=30)).date().isoformat()
     if not end_date:
-        end_date = timezone.now().date().isoformat()
+        end_date = timezone.localtime().date().isoformat()
         
     transactions = PointTransaction.objects.filter(
         organization=request.tenant,
