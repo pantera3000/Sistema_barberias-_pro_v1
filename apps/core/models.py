@@ -55,6 +55,17 @@ class Organization(models.Model):
     
     # Estado
     is_active = models.BooleanField(default=True, verbose_name="Activo")
+    
+    # Plan de Suscripción
+    plan = models.ForeignKey(
+        'superadmin.Plan',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='organizations',
+        verbose_name="Plan de Suscripción"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creado el")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Actualizado el")
 
@@ -80,7 +91,64 @@ class Organization(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+        
+        # Detectar si el plan cambió
+        plan_changed = False
+        if self.pk:
+            old_instance = Organization.objects.get(pk=self.pk)
+            if old_instance.plan != self.plan:
+                plan_changed = True
+        else:
+            if self.plan:
+                plan_changed = True
+
         super().save(*args, **kwargs)
+        
+        if plan_changed:
+            self.sync_with_plan()
+
+    def sync_with_plan(self):
+        """Sincroniza los usage limits y feature flags con el plan actual."""
+        if not self.plan:
+            return
+
+        # 1. Sincronizar UsageLimits
+        limits_map = {
+            'customers': self.plan.max_customers,
+            'staff': self.plan.max_staff,
+            'appointments_monthly': self.plan.max_appointments_monthly,
+            'campaigns_monthly': self.plan.max_campaigns_monthly,
+        }
+
+        for limit_type, value in limits_map.items():
+            limit_obj, created = UsageLimit.objects.get_or_create(
+                organization=self,
+                limit_type=limit_type,
+                defaults={'limit_value': value}
+            )
+            if not created:
+                limit_obj.limit_value = value
+                limit_obj.save()
+
+        # 2. Sincronizar FeatureFlags
+        features_map = {
+            'campaigns': self.plan.enable_whatsapp,
+            'reports': self.plan.enable_reports,
+            'audit': self.plan.enable_audit,
+            'stamps': self.plan.enable_stamps,
+            'points': self.plan.enable_points,
+            'appointments': self.plan.enable_appointments,
+        }
+
+        for feature_key, is_enabled in features_map.items():
+            feature_obj, created = FeatureFlag.objects.get_or_create(
+                organization=self,
+                feature_key=feature_key,
+                defaults={'is_enabled': is_enabled}
+            )
+            if not created:
+                feature_obj.is_enabled = is_enabled
+                feature_obj.save()
 
 class Domain(models.Model):
     """

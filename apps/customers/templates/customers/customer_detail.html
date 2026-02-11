@@ -43,12 +43,17 @@
 {% block content %}
 <div class="container-fluid pt-4">
     <!-- Header Navegación -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'customers:customer_list' %}">Clientes</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ customer.full_name }}</li>
-        </ol>
-    </nav>
+    <div class="d-flex justify-content-between align-items-center mb-0">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'customers:customer_list' %}" class="text-decoration-none">Clientes</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ customer.full_name }}</li>
+            </ol>
+        </nav>
+        <button onclick="smartBack()" class="btn btn-sm btn-light border shadow-sm px-3 rounded-pill">
+            <i class="fas fa-arrow-left me-1"></i> Volver
+        </button>
+    </div>
 
     <div class="row g-4">
         <!-- Columna Izquierda: Perfil y Stats -->
@@ -59,7 +64,7 @@
                         <i class="fas fa-user fa-3x"></i>
                     </div>
                     <h3 class="fw-bold mb-1">{{ customer.full_name }}</h3>
-                    <p class="text-muted small mb-2">ID: #{{ customer.id }} | Socio desde {{ customer.created_at|date:"M Y" }}</p>
+                    <p class="text-muted small mb-2">ID: #{{ customer.id }} {% if customer.dni %}| DNI: {{ customer.dni }}{% endif %} | Socio desde {{ customer.created_at|date:"M Y" }}</p>
                     
                     <div class="d-flex flex-wrap justify-content-center gap-1 mb-3">
                         {% for tag in customer.tags.all %}
@@ -78,11 +83,16 @@
                     </div>
                     {% endif %}
 
-                    <div class="d-flex justify-content-center gap-2">
-                        <a href="{% url 'customers:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-secondary">
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <a href="{% url 'customers:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                             <i class="fas fa-edit me-1"></i> Editar
                         </a>
-                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal">
+                        {% if customer.phone %}
+                        <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#waModal" data-template-index="0">
+                            <i class="fab fa-whatsapp me-1"></i> Enviar Accesos
+                        </button>
+                        {% endif %}
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal">
                             <i class="fas fa-trash me-1"></i> Eliminar
                         </button>
                     </div>
@@ -201,7 +211,7 @@
                                         <span class="badge bg-warning text-dark border border-warning border-opacity-50 pulse-animation">
                                             ¡Hoy cumple años! 🎉
                                         </span>
-                                        <a href="#" class="btn btn-sm btn-outline-warning d-block mt-1 fw-bold wa-bday-btn" data-bs-toggle="modal" data-bs-target="#waModal" data-template-index="3">
+                                        <a href="#" class="btn btn-sm btn-warning d-block mt-1 fw-bold wa-bday-btn shadow-sm" data-bs-toggle="modal" data-bs-target="#waModal" data-template-index="4">
                                             <i class="fab fa-whatsapp me-1"></i> Felicitar
                                         </a>
                                     {% elif birthday_info.days_to <= 7 %}
@@ -230,6 +240,37 @@
 
         <!-- Columna Derecha: Tarjetas y Movimientos -->
         <div class="col-lg-8">
+            <!-- Solicitudes QR Pendientes -->
+            {% if pending_requests %}
+            <div id="pendingQrSection" class="mb-4">
+                {% for req in pending_requests %}
+                <div class="card border-0 shadow-sm mb-3 bg-primary bg-opacity-10 border-start border-4 border-primary" id="request-row-{{ req.id }}">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                    <i class="fas fa-qrcode"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Solicitud de Sello Pendiente</h6>
+                                    <p class="text-muted small mb-0">Promoción: <strong>{{ req.promotion.name }}</strong> | Solicitado: {{ req.requested_at|timesince }}</p>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button onclick="resolveRequest({{ req.id }}, 'approve')" class="btn btn-success btn-sm rounded-pill px-3 fw-bold">
+                                    <i class="fas fa-check me-1"></i> Aprobar
+                                </button>
+                                <button onclick="resolveRequest({{ req.id }}, 'reject')" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                    <i class="fas fa-times me-1"></i> Rechazar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <!-- Pestañas -->
             <ul class="nav nav-pills mb-4 bg-white p-2 rounded shadow-sm d-inline-flex" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -434,35 +475,85 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert alert-primary border-0 shadow-sm mb-3 d-flex align-items-center">
+                        <i class="fas fa-key fa-2x me-3 opacity-50"></i>
+                        <div>
+                            <h6 class="fw-bold mb-0 small">Acceso Panel Premium</h6>
+                            <p class="small mb-0 opacity-75">Envía las credenciales y el link de acceso al cliente.</p>
+                        </div>
+                    </div>
                     <p class="text-muted small mb-2">1. Selecciona una plantilla:</p>
                     <div class="list-group list-group-flush border rounded-3 mb-3" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6 !important;">
+                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn bg-primary bg-opacity-10 border-primary border-opacity-25" 
+                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Bienvenido a nuestro programa Premium de {{ request.tenant.name|default:'la barbería' }}. 💈
+
+Tu llave de acceso está lista. Pulsa aquí para entrar:
+
+🔗 LINK PANEL PREMIUM:
+{{ request.scheme }}://{{ request.get_host }}{% url 'customers:customer_login' request.tenant.slug %}
+
+📱 CONSULTA RÁPIDA (Sin login):
+{{ request.scheme }}://{{ request.get_host }}{% url 'stamps:public_lookup' request.tenant.slug %}
+
+🔐 TUS CREDENCIALES:
+- Usuario: {{ customer.phone }}
+- Contraseña: {% if customer.dni and customer.dni != 'None' %}{{ customer.dni }}{% else %}(verificar DNI){% endif %} (tu DNI)
+
+¡Te esperamos pronto!{% endfilter %}">
+                            <h6 class="mb-1 fw-bold small text-primary"><i class="fas fa-star me-1"></i> BIENVENIDA Y ACCESO PREMIUM</h6>
+                            <small class="text-muted" style="font-size: 0.7rem;">Mensaje de bienvenida con link y contraseña (DNI).</small>
+                        </button>
                         <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn" 
-                                data-message="¡Hola {{ customer.first_name }}! 👋 Te escribimos de Premium Barbershop. Solo recordarte que tienes {{ customer.total_points|default:0 }} puntos acumulados. ¡Te esperamos pronto!">
+                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Te escribimos de {{ request.tenant.name|default:'la barbería' }}.
+
+Solo queríamos recordarte que tienes *{{ customer.total_points|default:0 }} puntos* acumulados en tu cuenta. 🌟
+
+¡Te falta muy poco para tu próximo premio! ✨ Te esperamos para tu próximo servicio. 💈{% endfilter %}">
                             <h6 class="mb-1 fw-bold small">Recordatorio de Puntos</h6>
                             <small class="text-muted" style="font-size: 0.7rem;">Informa sobre sus puntos actuales.</small>
                         </button>
                         <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="¡Hola {{ customer.first_name }}! 👋 Tienes premios listos para canjear en tu tarjeta de sellos. ¡Ven por tu recompensa! 🎁">
+                                data-message="{% filter urlencode %}¡Buenas noticias, {{ customer.first_name }}! 🎁✨
+
+¡Ya tienes un premio listo para canjear en tu tarjeta de sellos! 🎊
+
+Pásate hoy mismo por {{ request.tenant.name|default:'la barbería' }} para disfrutar de tu recompensa. ¡Te lo has ganado! 💈👑{% endfilter %}">
                             <h6 class="mb-1 fw-bold small">Aviso de Premio Listo</h6>
                             <small class="text-muted" style="font-size: 0.7rem;">Para clientes con canjes disponibles.</small>
                         </button>
                         <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="¡Hola {{ customer.first_name }}! 👋 Te extrañamos en la barbería. Hace tiempo que no nos visitas. ¿Qué tal un corte esta semana? ✂️">
+                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Te extrañamos en {{ request.tenant.name|default:'la barbería' }}. 💈✂️
+
+Hace tiempo que no nos visitas y tu cabello lo sabe. 😉 ¿Qué tal si agendamos un espacio para ti esta semana?
+
+¡Vuelve a lucir tu mejor versión con nosotros! 👊✨{% endfilter %}">
                             <h6 class="mb-1 fw-bold small">Re-engagement</h6>
                             <small class="text-muted" style="font-size: 0.7rem;">Para clientes ausentes.</small>
                         </button>
                         <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="¡Feliz cumpleaños {{ customer.first_name }}! 🎉🎂 De parte de todo el equipo de Premium Barbershop te deseamos lo mejor. ¡Ven hoy y recibe un descuento especial! 🎁">
+                                data-message="{% filter urlencode %}¡Feliz cumpleaños, {{ customer.first_name }}! 🎂🥳
+
+De parte de todo el equipo de {{ request.tenant.name|default:'la barbería' }}, te deseamos un día espectacular. ✨
+
+Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándote. 🎁 
+
+¡Ven a celebrar con nosotros y luce impecable en tu día! ✂️💈{% endfilter %}">
                             <h6 class="mb-1 fw-bold small">Saludo de Cumpleaños</h6>
                             <small class="text-muted" style="font-size: 0.7rem;">Felicita al cliente en su día.</small>
                         </button>
                         <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="¡Hola {{ customer.first_name }}! 👋 Tenemos una nueva promoción que te encantará. ¡Pregunta en tu próxima visita! 💎">
+                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Tenemos una *nueva promoción* en {{ request.tenant.name|default:'la barbería' }} que te va a encantar. 💎✨
+
+Pregunta por ella en tu próxima visita y aprovecha los beneficios. ¡No te la pierdas! 💈🚀{% endfilter %}">
                             <h6 class="mb-1 fw-bold small">Nueva Promoción</h6>
                             <small class="text-muted" style="font-size: 0.7rem;">Anuncia novedades y servicios.</small>
                         </button>
                         <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="¡Hola {{ customer.first_name }}! 👋 ¡Gracias por tu visita de hoy! Esperamos que te haya gustado el servicio. ¡Nos vemos pronto! 💈">
+                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 ¡Muchas gracias por tu visita de hoy! ✨💈
+
+Esperamos que te haya gustado el servicio. Nos encantaría verte pronto de nuevo por {{ request.tenant.name|default:'la barbería' }}.
+
+¡Que tengas un excelente día! 👊⚡{% endfilter %}">
                             <h6 class="mb-1 fw-bold small">Agradecimiento Visita</h6>
                             <small class="text-muted" style="font-size: 0.7rem;">Post-servicio inmediato.</small>
                         </button>
@@ -491,6 +582,47 @@
 
 {% block extra_js %}
 <script>
+    function smartBack() {
+        if (document.referrer && document.referrer.includes(window.location.host)) {
+            window.history.back();
+        } else {
+            window.location.href = "{% url 'customers:customer_list' %}";
+        }
+    }
+
+    function resolveRequest(id, action) {
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        const row = document.getElementById(`request-row-${id}`);
+        row.style.opacity = '0.5';
+        row.style.pointerEvents = 'none';
+
+        fetch(`/app/stamps/api/requests/${id}/resolve/`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' || data.status === 'ok') {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    row.remove();
+                    // Opcional: Recargar la página si era la última solicitud para limpiar el contenedor
+                    if (document.querySelectorAll('[id^="request-row-"]').length === 0) {
+                        location.reload();
+                    }
+                }
+            } else {
+                alert("Error: " + data.error);
+                row.style.opacity = '1';
+                row.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const redeemModal = document.getElementById('redeemCardModal');
         if (redeemModal) {
@@ -533,7 +665,12 @@
             btn.addEventListener('click', function() {
                 const message = this.getAttribute('data-message');
                 if (waEditor) {
-                    waEditor.value = message;
+                    // Decodificar para que se vea bien en el editor (con saltos de línea reales)
+                    try {
+                        waEditor.value = decodeURIComponent(message.replace(/\+/g, ' '));
+                    } catch (e) {
+                        waEditor.value = message;
+                    }
                     // Efecto visual de selección
                     templateBtns.forEach(b => b.classList.remove('active', 'bg-light'));
                     this.classList.add('bg-light');

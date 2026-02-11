@@ -129,9 +129,13 @@
         })
         .then(response => response.json())
         .then(data => {
-            if (data.status === 'ok') {
-                row.remove();
-                loadPendingRequests(); // Recargar para actualizar contadores y estados
+            if (data.status === 'success' || data.status === 'ok') {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    row.remove();
+                    loadPendingRequests(); // Recargar para actualizar contadores y estados
+                }
             } else {
                 alert("Error: " + data.error);
                 row.style.opacity = '1';

@@ -12,7 +12,7 @@
                     <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">¡FELIZ CUMPLEAÑOS!</span>
                     {% endif %}
                 </a>
-                <small class="text-muted d-block">ID: {{ customer.id }}</small>
+                <small class="text-muted d-block">ID: {{ customer.id }} {% if customer.dni %}| DNI: {{ customer.dni }}{% endif %}</small>
             </div>
         </div>
     </td>

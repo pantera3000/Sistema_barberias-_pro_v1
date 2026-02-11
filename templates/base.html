@@ -136,33 +136,51 @@
                     </div>
                 </div>
 
-                <!-- Reloj Global -->
-                <div class="px-3 mb-4 text-muted small fw-bold">
-                    <i class="far fa-clock me-1 text-primary"></i> <span id="globalClock">--:--:--</span>
-                    {% if request.tenant.timezone %}
-                        <div class="text-xs opacity-75 mt-n1" style="font-size: 0.65rem;">
-                             ZONA: {{ request.tenant.timezone }}
-                        </div>
-                    {% endif %}
+                <!-- Quick Access QR Scanner (PROMINENT) -->
+                <div class="px-3 mb-4">
+                    <a href="{% url 'stamps:qr_scanner' %}" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center">
+                        <i class="fas fa-camera me-2"></i> ESCANEAR QR
+                    </a>
                 </div>
+
                 <ul class="nav flex-column">
                     {% if user.is_superuser %}
                     <li class="nav-item">
                         <small class="text-muted px-3 text-uppercase">Superadmin</small>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.app_name == 'superadmin' %}active{% endif %}" href="{% url 'superadmin:dashboard' %}">
+                        <a class="nav-link {% if '/superadmin/search/' in request.path %}active{% endif %}" href="{% url 'superadmin:master_search' %}">
+                            <i class="fas fa-search me-2"></i> Buscador Maestro
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/superadmin/' == request.path %}active{% endif %}" href="{% url 'superadmin:dashboard' %}">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link {% if '/superadmin/organizations/' in request.path or '/superadmin/organization/' in request.path %}active{% endif %}" href="{% url 'superadmin:organization_list' %}">
                             <i class="fas fa-building me-2"></i> Organizaciones
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
-                            <i class="fas fa-money-bill-wave me-2"></i> Planes
+                        <a class="nav-link {% if '/superadmin/announcements/' in request.path %}active{% endif %}" href="{% url 'superadmin:announcement_list' %}">
+                            <i class="fas fa-bullhorn me-2"></i> Comunicados
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/superadmin/audit/' in request.path %}active{% endif %}" href="{% url 'superadmin:global_audit' %}">
+                            <i class="fas fa-history me-2"></i> Auditoría Global
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/superadmin/plans/' in request.path %}active{% endif %}" href="{% url 'superadmin:plan_list' %}">
+                            <i class="fas fa-money-bill-wave me-2"></i> Planes de Suscripción
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if '/superadmin/usage/' in request.path %}active{% endif %}" href="{% url 'superadmin:usage_monitor' %}">
+                            <i class="fas fa-chart-line me-2"></i> Monitor de Uso
                         </a>
                     </li>
                     <hr>
@@ -175,7 +193,6 @@
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.app_name == 'core' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                            <span id="qrSidebarBadge" class="badge bg-danger rounded-pill float-end mt-1" style="display: none; font-size: 0.7rem;">0</span>
                         </a>
                     </li>
                     {% if user.has_feature_points %}
@@ -187,13 +204,13 @@
                     {% endif %}
                     {% if user.has_feature_stamps %}
                     <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'stamps' in request.path %}active{% endif %}" 
+                        <a class="nav-link d-flex justify-content-between align-items-center active" 
                            data-bs-toggle="collapse" href="#stampsSubmenu" role="button" 
-                           aria-expanded="{% if 'stamps' in request.path %}true{% else %}false{% endif %}">
+                           aria-expanded="true">
                             <span><i class="fas fa-ticket-alt me-2"></i> Sellos</span>
                             <i class="fas fa-chevron-down small opacity-50"></i>
                         </a>
-                        <div class="collapse {% if 'stamps' in request.path %}show{% endif %}" id="stampsSubmenu">
+                        <div class="collapse show" id="stampsSubmenu">
                             <ul class="nav flex-column ms-4 border-start border-2">
                                 <li class="nav-item">
                                     <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'card_list' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:card_list' %}">
@@ -201,8 +218,14 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'pending_requests_list' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:pending_requests_list' %}">
-                                        <i class="fas fa-qrcode me-1"></i> Solicitudes QR
+                                    <a class="nav-link py-1 small d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'pending_requests_list' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:pending_requests_list' %}">
+                                        <span><i class="fas fa-bell me-1"></i> Solicitudes QR</span>
+                                        <span id="qrSidebarBadge" class="badge bg-danger rounded-pill" style="display: none; font-size: 0.65rem;">0</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'qr_scanner' %}text-primary fw-bold{% endif %}" href="{% url 'stamps:qr_scanner' %}">
+                                        <i class="fas fa-camera me-1"></i> Modo Escáner
                                     </a>
                                 </li>
                                 {% if user.is_owner or user.is_superuser %}
@@ -254,13 +277,13 @@
                     {% endif %}
                     {% if user.has_feature_campaigns and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'campaigns' in request.path %}active{% endif %}" 
+                        <a class="nav-link d-flex justify-content-between align-items-center active" 
                            data-bs-toggle="collapse" href="#marketingSubmenu" role="button" 
-                           aria-expanded="{% if 'campaigns' in request.path %}true{% else %}false{% endif %}">
+                           aria-expanded="true">
                             <span><i class="fas fa-bullhorn me-2"></i> Marketing</span>
                             <i class="fas fa-chevron-down small opacity-50"></i>
                         </a>
-                        <div class="collapse {% if 'campaigns' in request.path %}show{% endif %}" id="marketingSubmenu">
+                        <div class="collapse show" id="marketingSubmenu">
                             <ul class="nav flex-column ms-4 border-start border-2">
                                 <li class="nav-item">
                                     <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'campaign_list' %}text-primary fw-bold{% endif %}" href="{% url 'campaigns:campaign_list' %}">
@@ -332,6 +355,25 @@
                 </div>
             </div>
             {% endif %}
+            <!-- Comunicados Globales -->
+            {% if system_announcements %}
+            <div class="mt-3">
+                {% for announcement in system_announcements %}
+                <div class="alert alert-{{ announcement.style }} alert-dismissible fade show shadow-sm border-0 rounded-4" role="alert">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-{{ announcement.style }} bg-opacity-10 p-2 rounded-circle me-3">
+                            <i class="fas fa-bullhorn text-{{ announcement.style }}"></i>
+                        </div>
+                        <div>
+                            <h6 class="alert-heading fw-bold mb-1">{{ announcement.title }}</h6>
+                            <p class="mb-0 small">{{ announcement.content }}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
             
             {% block content %}{% endblock %}
         </main>
@@ -378,7 +420,13 @@
                         
                         <div class="actions">
                             {% if customer.phone %}
-                            <a href="https://wa.me/{{ customer.phone|cut:' ' }}?text=¡Feliz cumpleaños {{ customer.first_name }}! 🎉🎂 De parte de todo el equipo de {{ request.tenant.name|default:'la barbería' }} te deseamos lo mejor. ¡Ven hoy y recibe un descuento especial! 🎁" 
+                            <a href="https://wa.me/{{ customer.phone|cut:' ' }}?text={% filter urlencode %}¡Feliz cumpleaños, {{ customer.first_name }}! 🎂🥳 
+
+De parte de todo el equipo de {{ request.tenant.name|default:'la barbería' }}, te deseamos un día espectacular. ✨ 
+
+Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándote. 🎁 
+
+¡Ven a celebrar con nosotros y luce impecable en tu día! ✂️💈{% endfilter %}" 
                                target="_blank" 
                                class="btn btn-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center shadow-sm hover-lift"
                                onclick="registerBirthdayLog('{{ customer.id }}')"

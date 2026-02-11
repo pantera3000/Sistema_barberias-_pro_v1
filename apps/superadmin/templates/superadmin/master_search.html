@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-search text-primary me-2"></i> Buscador Maestro Global</h1>
+    <p class="text-muted">Busca clientes, usuarios o organizaciones en todo el ecosistema.</p>
+</div>
+
+<!-- Search Bar -->
+<div class="row mb-5">
+    <div class="col-md-8 mx-auto">
+        <form method="get" action="{% url 'superadmin:master_search' %}" class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden border">
+            <span class="input-group-text bg-white border-0 ps-4"><i class="fas fa-search text-muted"></i></span>
+            <input type="text" name="q" class="form-control border-0 px-3" placeholder="Ingresa nombre, DNI, email o teléfono..." value="{{ query }}">
+            <button class="btn btn-primary px-5 fw-bold" type="submit">BUSCAR</button>
+        </form>
+        {% if query and query|length < 3 %}
+            <div class="text-center mt-2 text-danger small">Ingresa al menos 3 caracteres para buscar.</div>
+        {% endif %}
+    </div>
+</div>
+
+{% if query and query|length >= 3 %}
+<div class="row g-4">
+    <!-- Clientes -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="fw-bold mb-0 text-primary"><i class="fas fa-users me-2"></i> Clientes ({{ results.customers|length }})</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for customer in results.customers %}
+                    <div class="list-group-item border-0 px-4 py-3 hover-bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">{{ customer.get_full_name }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-building me-1"></i> {{ customer.organization.name }}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-phone me-1"></i> {{ customer.phone|default:"Sin tel." }}
+                                </div>
+                            </div>
+                            <span class="badge bg-light text-dark border rounded-pill">DNI: {{ customer.dni|default:"---" }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted small">No se encontraron clientes.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usuarios (Staff/Dueños) -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="fw-bold mb-0 text-success"><i class="fas fa-user-shield me-2"></i> Usuarios Internos ({{ results.users|length }})</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for user in results.users %}
+                    <div class="list-group-item border-0 px-4 py-3 hover-bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-building me-1"></i> {{ user.organization.name|default:"Superadmin" }}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-envelope me-1"></i> {{ user.email }}
+                                </div>
+                            </div>
+                            <span class="badge bg-{{ user.is_owner|yesno:'info,secondary' }} rounded-pill small">
+                                {{ user.is_owner|yesno:'Dueño,Staff' }}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted small">No se encontraron usuarios.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organizaciones -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-building me-2"></i> Organizaciones ({{ results.organizations|length }})</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for org in results.organizations %}
+                    <a href="{% url 'superadmin:organization_edit' org.pk %}" class="list-group-item list-group-item-action border-0 px-4 py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">{{ org.name }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="fas fa-link me-1"></i> {{ org.slug }}
+                                </div>
+                            </div>
+                            <span class="badge bg-primary rounded-pill small">Ver Detalles</span>
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="p-4 text-center text-muted small">No se encontraron organizaciones.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

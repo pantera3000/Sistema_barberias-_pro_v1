@@ -25,6 +25,7 @@ class Customer(TenantAwareModel):
     last_name = models.CharField(max_length=150, verbose_name="Apellidos")
     email = models.EmailField(blank=True, null=True, verbose_name="Correo Electrónico")
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono / WhatsApp")
+    dni = models.CharField(max_length=20, blank=True, null=True, verbose_name="DNI/ID", db_index=True)
     birth_day = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Día de Nacimiento")
     birth_month = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name="Mes de Nacimiento")
     birth_year = models.PositiveIntegerField(blank=True, null=True, verbose_name="Año de Nacimiento")

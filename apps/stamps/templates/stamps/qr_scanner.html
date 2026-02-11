@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Escanear QR - Barber Loyalty{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scanner-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    #reader {
+        width: 100%;
+        border-radius: 20px;
+        overflow: hidden;
+        border: none !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    #reader__scan_region {
+        background: white;
+    }
+    #reader__dashboard {
+        padding: 20px !important;
+    }
+    .scanner-instructions {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="scanner-container text-center">
+        <div class="mb-4">
+            <h3 class="fw-bold"><i class="fas fa-camera text-primary me-2"></i> Escáner de Clientes</h3>
+            <p class="text-muted">Apunta al código QR del cliente para identificarlo y asignarle sellos rápidamente.</p>
+        </div>
+
+        <div id="reader"></div>
+
+        <div class="scanner-instructions shadow-sm">
+            <div class="d-flex align-items-center mb-2">
+                <i class="fas fa-info-circle text-primary me-2"></i>
+                <span class="fw-bold small">¿Cómo funciona?</span>
+            </div>
+            <p class="small text-muted mb-0 text-start">
+                1. Permite el acceso a la cámara cuando el navegador lo solicite.<br>
+                2. Enfoca el código QR de la pantalla del cliente.<br>
+                3. Una vez detectado, serás redirigido automáticamente a su perfil.
+            </p>
+        </div>
+
+        <div class="mt-4">
+            <a href="{% url 'core:dashboard' %}" class="btn btn-outline-secondary rounded-pill px-4">
+                <i class="fas fa-arrow-left me-2"></i> Volver al Panel
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        // El decodedText debería ser la URL completa o al menos contener el path para add-stamp
+        console.log(`Scan result: ${decodedText}`);
+        
+        // Detener el escáner para evitar múltiples detecciones
+        html5QrcodeScanner.clear().then(_ => {
+            // El resultado es una URL, redirigir
+            window.location.href = decodedText;
+        }).catch(error => {
+            console.warn("Failed to clear scanner", error);
+            window.location.href = decodedText;
+        });
+    }
+
+    function onScanError(errorMessage) {
+        // console.log(`Scan error: ${errorMessage}`);
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { 
+            fps: 10, 
+            qrbox: {width: 250, height: 250},
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: true,
+            rememberLastUsedCamera: true,
+            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+        });
+    
+    html5QrcodeScanner.render(onScanSuccess, onScanError);
+</script>
+{% endblock %}

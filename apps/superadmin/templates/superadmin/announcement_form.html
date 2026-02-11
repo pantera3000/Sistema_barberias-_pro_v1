@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'superadmin:dashboard' %}">Superadmin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'superadmin:announcement_list' %}">Comunicados</a></li>
+            <li class="breadcrumb-item active">{{ title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h2">{{ title }}</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Título del Comunicado</label>
+                        {{ form.title }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Contenido del Mensaje</label>
+                        {{ form.content }}
+                        <small class="text-muted">Acepta texto plano. Estos mensajes aparecerán en el dashboard de los usuarios.</small>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Estilo Visual</label>
+                            {{ form.style }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fecha de Expiración (Opcional)</label>
+                            {{ form.expires_at }}
+                        </div>
+                    </div>
+
+                    <div class="card bg-light border-0 rounded-3 mb-4">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i> Configuración de Publicación</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check form-switch">
+                                        {{ form.is_active }}
+                                        <label class="form-check-label">Publicado (Visible)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        {{ form.show_to_owners }}
+                                        <label class="form-check-label">Mostrar a Dueños</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        {{ form.show_to_staff }}
+                                        <label class="form-check-label">Mostrar a Staff</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4 rounded-pill">Guardar Comunicado</button>
+                        <a href="{% url 'superadmin:announcement_list' %}" class="btn btn-light px-4 rounded-pill">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 rounded-4 bg-light">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3">Vista Previa</h6>
+                <div class="alert alert-primary mb-0" id="announcementPreview">
+                    <h5 class="alert-heading small fw-bold" id="previewTitle">Título del Comunicado</h5>
+                    <p class="mb-0 small" id="previewContent">El contenido aparecerá aquí...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const titleInput = document.querySelector('input[name="title"]');
+        const contentInput = document.querySelector('textarea[name="content"]');
+        const styleInput = document.querySelector('select[name="style"]');
+        
+        const previewBlock = document.getElementById('announcementPreview');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewContent = document.getElementById('previewContent');
+
+        function updatePreview() {
+            previewTitle.innerText = titleInput.value || 'Título del Comunicado';
+            previewContent.innerText = contentInput.value || 'El contenido aparecerá aquí...';
+            
+            // Actualizar color
+            previewBlock.className = `alert alert-${styleInput.value} mb-0`;
+        }
+
+        titleInput.addEventListener('input', updatePreview);
+        contentInput.addEventListener('input', updatePreview);
+        styleInput.addEventListener('change', updatePreview);
+        
+        updatePreview();
+    });
+</script>
+{% endblock %}
+{% endblock %}

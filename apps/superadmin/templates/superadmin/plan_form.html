@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'superadmin:dashboard' %}">Superadmin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'superadmin:plan_list' %}">Planes</a></li>
+            <li class="breadcrumb-item active">{{ title }}</li>
+        </ol>
+    </nav>
+    <h1 class="h2">{{ title }}</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">Información Básica</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold small">Nombre del Plan</label>
+                            {{ form.name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small">Precio Mensual</label>
+                            <div class="input-group">
+                                <span class="input-group-text badge-primary">S/</span>
+                                {{ form.price }}
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small">Descripción</label>
+                            {{ form.description }}
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">Límites y Consumo</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small"><i class="fas fa-users me-1 text-muted"></i> Máximo Clientes</label>
+                            {{ form.max_customers }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small"><i class="fas fa-user-tie me-1 text-muted"></i> Máximo Staff</label>
+                            {{ form.max_staff }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small"><i class="fas fa-calendar-alt me-1 text-muted"></i> Citas / Mensuales</label>
+                            {{ form.max_appointments_monthly }}
+                            <small class="text-muted text-nowrap">(-1 para ilimitado)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small"><i class="fas fa-paper-plane me-1 text-muted"></i> Campañas / Mensuales</label>
+                            {{ form.max_campaigns_monthly }}
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold mb-4 border-bottom pb-2">Funcionalidades Incluidas</h5>
+                    <div class="row g-3 mb-4 bg-light p-3 rounded-4 mx-0">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.enable_whatsapp }}
+                                <label class="form-check-label small">WhatsApp Mkt</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.enable_reports }}
+                                <label class="form-check-label small">Reportes Avanzados</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.enable_audit }}
+                                <label class="form-check-label small">Auditoría Global</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.enable_stamps }}
+                                <label class="form-check-label small">Punch Cards</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.enable_points }}
+                                <label class="form-check-label small">Sist. Puntos</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.enable_appointments }}
+                                <label class="form-check-label small">Módulo de Citas</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+                        {{ form.is_active }}
+                        <label class="form-check-label fw-bold">Plan Activo (Disponible para asignar)</label>
+                    </div>
+
+                    <div class="d-flex gap-2 border-top pt-4">
+                        <button type="submit" class="btn btn-primary px-4 rounded-pill shadow-sm">Guardar Plan</button>
+                        <a href="{% url 'superadmin:plan_list' %}" class="btn btn-light px-4 rounded-pill">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Column -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 rounded-4 bg-primary text-white mb-4">
+            <div class="card-body p-4 text-center">
+                <i class="fas fa-lightbulb fa-3x mb-3 opacity-50"></i>
+                <h5 class="fw-bold">Tips de Monetización</h5>
+                <p class="small mb-0">Crea planes que obliguen al crecimiento. Por ejemplo, un plan básico para barberos independientes y uno pro para locales con varios sillones.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

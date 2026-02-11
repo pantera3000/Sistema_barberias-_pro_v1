@@ -79,6 +79,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'apps.customers.context_processors.birthday_celebrants',
+                'apps.core.context_processors.global_announcements',
             ],
         },
     },

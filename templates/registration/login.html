@@ -68,9 +68,41 @@
                         <a href="#" class="text-decoration-none small text-muted">¿Olvidaste tu contraseña?</a>
                     </div>
                 </form>
+
+                <div class="mt-4 pt-3 border-top text-center">
+                    <p class="mb-2 text-dark fw-bold small">¿Eres cliente de una barbería?</p>
+                    <a href="{% if request.tenant %}{% url 'customers:customer_login' slug=request.tenant.slug %}{% else %}#{% endif %}" 
+                       class="btn btn-outline-primary w-100 rounded-pill py-2 fw-bold"
+                       {% if not request.tenant %}data-bs-toggle="modal" data-bs-target="#customerInfoModal"{% endif %}>
+                        <i class="fas fa-star me-2"></i> CONSULTAR MIS SELLOS
+                    </a>
+                </div>
             </div>
             <div class="card-footer text-center border-0 bg-transparent py-3">
                 <small class="text-muted">&copy; 2026 Sistema de Fidelización V7</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Información para Clientes -->
+<div class="modal fade" id="customerInfoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-body p-4 text-center">
+                <div class="text-primary mb-3">
+                    <i class="fas fa-qrcode fa-3x"></i>
+                </div>
+                <h4 class="fw-bold mb-3">¿Cómo consultar mis sellos?</h4>
+                <p class="text-muted small">Para ver tu progreso, cada barbería tiene su propio enlace de acceso exclusivo.</p>
+                <div class="bg-light p-3 rounded-4 text-start mb-3" style="border-radius: 15px;">
+                    <p class="small mb-2 fw-bold text-dark"><i class="fas fa-check-circle text-success me-2"></i> Opción 1: Escaneo</p>
+                    <p class="x-small mb-3 text-muted" style="font-size: 0.75rem;">Escanea el código QR que se encuentra en el mostrador del local.</p>
+                    
+                    <p class="small mb-2 fw-bold text-dark"><i class="fas fa-link text-primary me-2"></i> Opción 2: Enlace Directo</p>
+                    <p class="x-small mb-0 text-muted" style="font-size: 0.75rem;">Solicita a tu barbero el link de acceso directo a tu perfil.</p>
+                </div>
+                <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm" data-bs-dismiss="modal">¡ENTENDIDO!</button>
             </div>
         </div>
     </div>

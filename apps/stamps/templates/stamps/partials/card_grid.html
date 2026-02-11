@@ -7,7 +7,9 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="overflow-hidden">
                         <div class="d-flex align-items-center">
-                            <h5 class="fw-bold mb-0 text-dark text-truncate me-2">{{ group.customer.full_name }}</h5>
+                            <a href="{% url 'customers:customer_detail' group.customer.id %}" class="text-decoration-none">
+                                <h5 class="fw-bold mb-0 text-dark text-truncate me-2 hover-opacity" title="Ver perfil completo">{{ group.customer.full_name }}</h5>
+                            </a>
                             <button type="button" class="btn btn-link p-0 text-muted" onclick="loadHistory('{{ group.customer.id }}', '{{ group.customer.full_name }}')" title="Ver historial">
                                 <i class="fas fa-history small"></i>
                             </button>

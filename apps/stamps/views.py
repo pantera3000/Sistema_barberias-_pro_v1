@@ -13,6 +13,10 @@ from apps.core.models import Organization, set_current_tenant
 from .models import StampPromotion, StampCard, StampTransaction, StampRequest
 from django.utils import timezone
 from apps.core.decorators import owner_or_superuser_required
+from apps.campaigns.models import NotificationConfig
+from apps.campaigns.utils import send_email_notification, format_message
+from django.urls import reverse
+import urllib.parse
 
 def qr_request_stamp(request, slug):
     """Vista pública para solicitar un sello vía QR"""
@@ -57,6 +61,33 @@ def qr_request_stamp(request, slug):
     return render(request, 'stamps/qr_request.html', {
         'organization': organization,
         'promotion': promotion
+    })
+
+def public_lookup(request, slug):
+    """Vista pública para consultar sellos por teléfono (sin login)"""
+    organization = get_object_or_404(Organization, slug=slug, is_active=True)
+    set_current_tenant(organization)
+    
+    cards = []
+    customer = None
+    phone = request.GET.get('phone', '').strip()
+    
+    if phone:
+        customer = Customer.objects.filter(phone=phone, organization=organization).first()
+        if customer:
+            cards = StampCard.objects.filter(customer=customer, is_redeemed=False).select_related('promotion').order_by('-current_stamps')
+            # Filtrar expiradas
+            cards = [c for c in cards if not c.is_expired]
+        else:
+            messages.info(request, "No encontramos ninguna tarjeta con ese número.")
+
+    return render(request, 'stamps/public_lookup.html', {
+        'organization': organization,
+        'customer': customer,
+        'cards': cards,
+        'phone': phone,
+        'days_range': range(1, 32),
+        'title': 'Consultar mis Sellos'
     })
 
 @login_required
@@ -130,6 +161,11 @@ def resolve_stamp_request(request, pk):
         )
         
         stamp_request.status = 'APPROVED'
+        # NOTIFICACIÓN AUTOMÁTICA (Email)
+        config = NotificationConfig.objects.filter(organization=request.tenant).first()
+        if config and config.email_enabled and stamp_request.customer.email:
+            msg = f"¡Hola {stamp_request.customer.first_name}! Has recibido un nuevo sello. Tienes {card.current_stamps}/{card.promotion.total_stamps_needed}."
+            send_email_notification(config, stamp_request.customer.email, "Nuevo Sello Recibido 💈", msg)
     else:
         stamp_request.status = 'REJECTED'
         
@@ -137,7 +173,49 @@ def resolve_stamp_request(request, pk):
     stamp_request.resolved_by = request.user
     stamp_request.save()
     
+    if action == 'approve':
+        return JsonResponse({
+            'status': 'success', 
+            'message': 'Solicitud aprobada',
+            'redirect_url': reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty=1"
+        })
     return JsonResponse({'status': 'ok', 'new_status': stamp_request.status})
+
+def api_customer_nudge(request):
+    """API para que el cliente complete su perfil desde el Kiosko"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'error': 'Método no permitido'}, status=405)
+    
+    customer_id = request.POST.get('customer_id')
+    dni = request.POST.get('dni')
+    first_name = request.POST.get('first_name')
+    email = request.POST.get('email')
+    birth_day = request.POST.get('birth_day')
+    birth_month = request.POST.get('birth_month')
+    
+    if not all([customer_id, dni, first_name, birth_day, birth_month]):
+        return JsonResponse({'status': 'error', 'error': 'Faltan datos obligatorios (Nombre, DNI y Cumpleaños)'}, status=400)
+    
+    customer = get_object_or_404(Customer, id=customer_id)
+    
+    # Actualizar datos
+    customer.first_name = first_name
+    customer.dni = dni
+    if email:
+        customer.email = email
+    customer.birth_day = int(birth_day)
+    customer.birth_month = int(birth_month)
+    customer.save()
+    
+    log_action(
+        request,
+        'CUSTOMER_NUDGE_UPDATE',
+        'Cliente',
+        f"Perfil completado desde Kiosko (DNI: {dni}, Cumple: {birth_day}/{birth_month})",
+        customer=customer
+    )
+    
+    return JsonResponse({'status': 'ok'})
 
 @login_required
 def pending_requests_list(request):
@@ -224,9 +302,15 @@ def assign_stamps(request):
                     quantity=quantity,
                     performed_by=request.user
                 )
-                
-                messages.success(request, f"Se agregaron {quantity} sellos.")
-                return redirect('stamps:card_list')
+
+                # NOTIFICACIÓN AUTOMÁTICA (Email)
+                config = NotificationConfig.objects.filter(organization=request.tenant).first()
+                if config and config.email_enabled and customer.email:
+                    msg = f"¡Hola {customer.first_name}! Has recibido {quantity} nuevos sellos. Tienes {card.current_stamps}/{active_promo.total_stamps_needed}."
+                    send_email_notification(config, customer.email, "Nuevos Sellos Recibidos 💈", msg)
+
+            messages.success(request, f"Se agregaron {quantity} sellos.")
+            return redirect(reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty={quantity}")
     else:
         form = StampAssignmentForm(tenant=request.tenant)
     return render(request, 'stamps/assign_stamps.html', {'form': form, 'title': 'Agregar Sellos'})
@@ -401,11 +485,17 @@ def add_stamp_customer(request, customer_id):
                 customer=customer
             )
             
+            # NOTIFICACIÓN AUTOMÁTICA (Email)
+            config = NotificationConfig.objects.filter(organization=request.tenant).first()
+            if config and config.email_enabled and customer.email:
+                msg = f"¡Hola {customer.first_name}! Has recibido {quantity} nuevo(s) sello(s). Tienes {card.current_stamps}/{card.promotion.total_stamps_needed}."
+                send_email_notification(config, customer.email, "Nuevo Sello Recibido 💈", msg)
+
             msg = f"Sello añadido correctamente."
             if quantity == 2:
                 msg = f"⚡ ¡Sello DOBLE aplicado! ({quantity} sellos añadidos)."
             messages.success(request, msg)
-            return redirect('stamps:card_list')
+            return redirect(reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty={quantity}")
 
     # GET: Mostrar pantalla de confirmación (útil para escaneo QR)
     customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
@@ -442,13 +532,23 @@ def customer_history(request, customer_id):
 
 # --- CLIENT VIEWS ---
 
-@login_required
 def my_stamps(request):
     """Vista para que el cliente vea sus propias tarjetas"""
-    # Intentar obtener el registro de cliente asociado por email
-    customer = Customer.objects.filter(email=request.user.email, organization=request.user.organization).first()
+    customer = None
+    
+    # Prioridad 1: Sesión de cliente (Login DNI/Celular)
+    customer_id = request.session.get('customer_id')
+    if customer_id:
+        customer = Customer.objects.filter(id=customer_id).first()
+    
+    # Prioridad 2: Usuario logueado (Django User)
+    if not customer and request.user.is_authenticated:
+        customer = Customer.objects.filter(email=request.user.email, organization=request.user.organization).first()
     
     if not customer:
+        # Si no hay cliente en sesión, redirigir a login si sabemos la organización
+        if hasattr(request, 'tenant') and request.tenant:
+            return redirect('customers:customer_login', slug=request.tenant.slug)
         return render(request, 'stamps/no_customer_profile.html')
         
     cards = StampCard.objects.filter(customer=customer, is_redeemed=False).select_related('promotion').order_by('-current_stamps')
@@ -462,11 +562,21 @@ def my_stamps(request):
         'title': 'Mis Sellos'
     })
 
-@login_required
 def customer_kiosk(request):
     """Vista simplificada con QR para identificación rápida en el local"""
-    customer = Customer.objects.filter(email=request.user.email, organization=request.user.organization).first()
+    customer = None
+    
+    # Identificar cliente (Sesión o Django User)
+    customer_id = request.session.get('customer_id')
+    if customer_id:
+        customer = Customer.objects.filter(id=customer_id).first()
+    
+    if not customer and request.user.is_authenticated:
+        customer = Customer.objects.filter(email=request.user.email, organization=request.user.organization).first()
+
     if not customer:
+        if hasattr(request, 'tenant') and request.tenant:
+            return redirect('customers:customer_login', slug=request.tenant.slug)
         return render(request, 'stamps/no_customer_profile.html')
         
     # URL que el staff escaneará para dar un sello
@@ -485,13 +595,21 @@ def customer_kiosk(request):
         'title': 'Modo Kiosko'
     })
 
-@login_required
 def request_redemption(request, pk):
     """El cliente solicita canjear su premio"""
     if request.method == 'POST':
         card = get_object_or_404(StampCard, pk=pk, is_completed=True, is_redeemed=False)
-        # Validar pertenencia
-        if card.customer.email != request.user.email:
+        
+        # Validar pertenencia del cliente (Sesión o Email)
+        customer_id = request.session.get('customer_id')
+        is_owner = False
+        
+        if customer_id and card.customer.id == customer_id:
+            is_owner = True
+        elif request.user.is_authenticated and card.customer.email == request.user.email:
+            is_owner = True
+            
+        if not is_owner:
             messages.error(request, "No tienes permiso para esta acción.")
             return redirect('stamps:my_stamps')
             
@@ -501,6 +619,17 @@ def request_redemption(request, pk):
         messages.success(request, "¡Premio solicitado! Muéstrale esta pantalla al barbero.")
         
     return redirect('stamps:my_stamps')
+
+@login_required
+def qr_scanner(request):
+    """Vista con escáner de cámara para que el staff identifique clientes"""
+    if not (request.user.is_owner or request.user.is_staff_member or request.user.is_superuser):
+        messages.error(request, "No tienes permiso para acceder al escáner.")
+        return redirect('core:dashboard')
+        
+    return render(request, 'stamps/qr_scanner.html', {
+        'title': 'Escanear Cliente'
+    })
 
 @login_required
 def redeem_card(request, pk):
@@ -572,3 +701,35 @@ def undo_transaction(request, pk):
             messages.success(request, "Acción deshecha correctamente.")
             
     return redirect('stamps:card_list')
+
+@login_required
+def assignment_success(request, card_id):
+    """Página de éxito tras asignar sellos con opciones de compartir"""
+    card = get_object_or_404(StampCard, pk=card_id, organization=request.tenant)
+    added_quantity = request.GET.get('qty', 1)
+    
+    # Preparar mensaje de WhatsApp
+    clean_phone = ''.join(filter(str.isdigit, str(card.customer.phone)))
+    kiosk_url = request.build_absolute_uri(reverse('stamps:public_lookup', kwargs={'slug': request.tenant.slug}))
+    kiosk_url += f"?phone={card.customer.phone}"
+    
+    # Usar urllib.parse para asegurar que el mensaje esté bien codificado para la URL
+    msg = f"¡Hola {card.customer.first_name}! 💈 Has ganado {added_quantity} sello(s) en {request.tenant.name}. "
+    msg += f"Ya tienes {card.current_stamps} de {card.promotion.total_stamps_needed}. "
+    
+    if card.is_completed:
+        msg += "¡FELICIDADES! Ya puedes reclamar tu premio. 🎁 "
+    else:
+        msg += f"¡Solo te faltan {card.promotion.total_stamps_needed - card.current_stamps} para tu premio! "
+        
+    msg += f"\nMira tu progreso aquí: {kiosk_url}"
+    
+    context = {
+        'card': card,
+        'customer': card.customer,
+        'added_quantity': added_quantity,
+        'clean_phone': clean_phone,
+        'wa_message': msg,
+        'title': '¡Sello Asignado!'
+    }
+    return render(request, 'stamps/assignment_success.html', context)

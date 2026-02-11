@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-building text-primary me-2"></i> Listado de Barberías</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'superadmin:organization_create' %}" class="btn btn-primary shadow-sm rounded-pill px-4">
+            <i class="fas fa-plus me-2"></i> Nueva Organización
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter (Future) -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" placeholder="Buscar por nombre, slug o dueño...">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Organizations Table -->
+<div class="card shadow-sm border-0 rounded-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-4">Nombre</th>
+                    <th>Dueño</th>
+                    <th>Usuarios</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th class="text-end pe-4">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in organizations %}
+                <tr>
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            {% if org.logo %}
+                            <img src="{{ org.logo.url }}" class="rounded-circle me-3 shadow-sm" width="45" height="45" alt="Logo">
+                            {% else %}
+                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 45px; height: 45px;">
+                                <i class="fas fa-store"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <div class="fw-bold">{{ org.name }}</div>
+                                <div class="small text-muted">{{ org.slug }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small fw-medium">{{ org.owner.get_full_name|default:org.owner.username }}</div>
+                        <div class="small text-muted">{{ org.owner.email }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="fas fa-users me-1 text-primary"></i> {{ org.user_count }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if org.is_active %}
+                        <span class="badge bg-success bg-opacity-10 text-success border-success border-opacity-25 px-3">
+                            <i class="fas fa-check-circle me-1"></i> Activo
+                        </span>
+                        {% else %}
+                        <span class="badge bg-danger bg-opacity-10 text-danger border-danger border-opacity-10 px-3">
+                            <i class="fas fa-times-circle me-1"></i> Inactivo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="small text-muted">{{ org.created_at|date:"d M Y" }}</div>
+                    </td>
+                    <td class="text-end pe-4">
+                        <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                            <a href="{% url 'superadmin:organization_features' org.pk %}" class="btn btn-sm btn-white border-end" title="Configurar Features">
+                                <i class="fas fa-cogs text-primary"></i>
+                            </a>
+                            <a href="{% url 'superadmin:organization_edit' org.pk %}" class="btn btn-sm btn-white" title="Editar">
+                                <i class="fas fa-edit text-warning"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-building mb-3 d-block display-4 opacity-25"></i>
+                        No hay organizaciones registradas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .btn-white { background: white; border: 1px solid #dee2e6; }
+    .btn-white:hover { background: #f8f9fa; }
+</style>
+{% endblock %}

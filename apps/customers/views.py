@@ -7,11 +7,13 @@ from django.db import transaction
 from .models import Customer, Tag
 from .forms import CustomerForm
 # Importaciones para auto-asignación y estadísticas
-from apps.stamps.models import StampPromotion, StampCard, StampTransaction
+from apps.stamps.models import StampPromotion, StampCard, StampTransaction, StampRequest
 from apps.loyalty.models import PointTransaction
 from apps.audit.utils import log_action
 from django.utils import timezone
 from collections import Counter
+
+from apps.core.models import Organization
 
 @login_required
 def customer_list(request):
@@ -156,6 +158,9 @@ def customer_detail(request, pk):
         # Filtrar solo acciones operativas para trabajadores
         activity_logs = activity_logs.filter(action__in=['STAMP_ADD', 'STAMP_REDEEM', 'POINTS_ADD', 'POINTS_REDEEM', 'WA_SENT'])
 
+    # --- Solicitudes QR Pendientes ---
+    pending_requests = StampRequest.objects.filter(customer=customer, status='PENDING').select_related('promotion')
+
     context = {
         'customer': customer,
         'stamp_cards': stamp_cards,
@@ -164,6 +169,7 @@ def customer_detail(request, pk):
         'adn': adn,
         'birthday_info': birthday_info,
         'activity_logs': activity_logs[:20],  # Últimos 20 movimientos
+        'pending_requests': pending_requests,
         'title': f'Perfil: {customer.full_name}'
     }
     return render(request, 'customers/customer_detail.html', context)
@@ -272,3 +278,39 @@ def log_whatsapp_message(request, pk):
         )
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'status': 'error'}, status=400)
+
+def customer_login(request, slug):
+    """Acceso para clientes usando Celular + DNI"""
+    organization = get_object_or_404(Organization, slug=slug, is_active=True)
+    
+    if request.method == 'POST':
+        phone = request.POST.get('phone', '').strip()
+        dni = request.POST.get('dni', '').strip()
+        
+        if phone and dni:
+            customer = Customer.objects.filter(
+                organization=organization,
+                phone=phone,
+                dni=dni
+            ).first()
+            
+            if customer:
+                request.session['customer_id'] = customer.id
+                request.session['customer_org_id'] = organization.id
+                messages.success(request, f"¡Bienvenido de nuevo, {customer.first_name}!")
+                return redirect('stamps:my_stamps')
+            else:
+                messages.error(request, "Los datos no coinciden. Prueba de nuevo o solicita ayuda en la barbería.")
+        else:
+            messages.error(request, "Por favor ingresa tu número y DNI.")
+            
+    return render(request, 'customers/customer_login.html', {
+        'organization': organization,
+        'title': 'Acceso Clientes'
+    })
+
+def customer_logout(request):
+    """Cerrar sesión de cliente (limpiar sesión)"""
+    request.session.flush()
+    messages.info(request, "Has cerrado tu sesión correctamente.")
+    return redirect('core:home')

@@ -47,12 +47,13 @@ class CustomerForm(forms.ModelForm):
 
     class Meta:
         model = Customer
-        fields = ['first_name', 'last_name', 'email', 'phone', 'birth_day', 'birth_month', 'birth_year', 'notes', 'tags', 'is_active']
+        fields = ['first_name', 'last_name', 'email', 'phone', 'dni', 'birth_day', 'birth_month', 'birth_year', 'notes', 'tags', 'is_active']
         widgets = {
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'dni': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nro de Identidad'}),
             'birth_year': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 1990 (Opcional)'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input mb-2'}),

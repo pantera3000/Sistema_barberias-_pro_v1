@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-money-bill-wave text-primary me-2"></i> Gestión de Planes</h1>
+    <a href="{% url 'superadmin:plan_create' %}" class="btn btn-primary shadow-sm rounded-pill px-4">
+        <i class="fas fa-plus me-2"></i> Nuevo Plan
+    </a>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for plan in planes %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 rounded-4 {% if not plan.is_active %}opacity-50{% endif %}">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="fw-bold mb-0 text-primary">{{ plan.name }}</h5>
+                    <small class="text-muted">Creado el {{ plan.created_at|date:"d/m/Y" }}</small>
+                </div>
+                <a href="{% url 'superadmin:plan_edit' plan.pk %}" class="btn btn-sm btn-light rounded-circle shadow-sm">
+                    <i class="fas fa-edit"></i>
+                </a>
+            </div>
+            <div class="card-body px-4">
+                <div class="mb-3">
+                    <span class="display-6 fw-bold text-dark">{{ plan.price|floatformat:2 }}</span>
+                    <span class="text-muted">/ mes</span>
+                </div>
+                
+                <p class="small text-muted mb-4">{{ plan.description|default:"Sin descripción." }}</p>
+
+                <ul class="list-unstyled mb-4">
+                    <li class="mb-2">
+                        <i class="fas fa-user-friends text-success me-2"></i> 
+                        <strong>{{ plan.max_customers }}</strong> Clientes
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-user-tie text-success me-2"></i> 
+                        <strong>{{ plan.max_staff }}</strong> Trabajadores
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-calendar-check text-success me-2"></i> 
+                        <strong>{% if plan.max_appointments_monthly == -1 %}Ilimitadas{% else %}{{ plan.max_appointments_monthly }}{% endif %}</strong> Citas/mes
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-paper-plane text-success me-2"></i> 
+                        <strong>{{ plan.max_campaigns_monthly }}</strong> Campañas/mes
+                    </li>
+                </ul>
+
+                <hr>
+
+                <div class="d-flex flex-wrap gap-2 py-2">
+                    {% if plan.enable_whatsapp %}<span class="badge bg-primary-subtle text-primary rounded-pill border">WhatsApp</span>{% endif %}
+                    {% if plan.enable_reports %}<span class="badge bg-info-subtle text-info rounded-pill border">Reportes</span>{% endif %}
+                    {% if plan.enable_audit %}<span class="badge bg-dark-subtle text-dark rounded-pill border">Auditoría</span>{% endif %}
+                    {% if plan.enable_appointments %}<span class="badge bg-success-subtle text-success rounded-pill border">Citas</span>{% endif %}
+                </div>
+            </div>
+            <div class="card-footer bg-white border-0 pb-4 px-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="small {% if plan.is_active %}text-success{% else %}text-danger{% endif %}">
+                        <i class="fas {% if plan.is_active %}fa-check-circle{% else %}fa-times-circle{% endif %} me-1"></i>
+                        {% if plan.is_active %}Activo{% else %}Inactivo{% endif %}
+                    </span>
+                    <span class="small text-muted">{{ plan.organizations.count }} Barberías</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5">
+        <div class="text-muted">No se han definido planes aún.</div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
