@@ -9,6 +9,7 @@ from datetime import timedelta
 from apps.customers.models import Customer
 from apps.loyalty.models import PointTransaction
 from apps.stamps.models import StampCard, StampTransaction, StampPromotion
+from .decorators import owner_or_superuser_required
 
 @login_required
 def dashboard_dispatch(request):
@@ -120,15 +121,11 @@ def dashboard_stats_api(request):
 from django.contrib import messages
 from .forms import OrganizationSettingsForm
 
-@login_required
+@owner_or_superuser_required
 def tenant_settings(request):
     """Configuración general del negocio (solo para dueños)"""
     tenant = getattr(request, 'tenant', None) or request.user.organization
     
-    if not request.user.is_owner and not request.user.is_superuser:
-        messages.error(request, "No tienes permiso para acceder a la configuración.")
-        return redirect('core:dashboard')
-
     if request.method == 'POST':
         form = OrganizationSettingsForm(request.POST, request.FILES, instance=tenant)
         if form.is_valid():
@@ -148,17 +145,13 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-@login_required
+@owner_or_superuser_required
 def owner_dashboard(request):
     """
     Panel de control avanzado para el dueño: Cuadre y Auditoría Visual.
     """
     tenant = getattr(request, 'tenant', None) or request.user.organization
     
-    if not request.user.is_owner and not request.user.is_superuser:
-        messages.error(request, "Acceso denegado.")
-        return redirect('core:dashboard')
-        
     today = timezone.localtime().date()
     now_time = timezone.localtime().time()
     if tenant and hasattr(tenant, 'timezone') and tenant.timezone:

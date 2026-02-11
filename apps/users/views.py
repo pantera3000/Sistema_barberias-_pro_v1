@@ -6,16 +6,15 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from .forms import WorkerForm
 
+from apps.core.decorators import owner_or_superuser_required
+
 User = get_user_model()
 
-@login_required
+@owner_or_superuser_required
 def worker_list(request):
     """Listar trabajadores de la organización actual"""
     if not request.user.organization:
         return redirect('users:login')
-        
-    if not (request.user.is_owner or request.user.is_staff_member): # TODO: Refinar permisos
-        raise PermissionDenied
         
     workers = User.objects.filter(
         organization=request.user.organization, 
@@ -24,11 +23,9 @@ def worker_list(request):
     
     return render(request, 'users/worker_list.html', {'workers': workers})
 
-@login_required
+@owner_or_superuser_required
 def worker_create(request):
     """Crear nuevo trabajador en la organización"""
-    if not request.user.is_owner: # Solo dueños crean trabajadores por ahora
-        raise PermissionDenied
         
     if request.method == 'POST':
         form = WorkerForm(request.POST)
@@ -45,11 +42,9 @@ def worker_create(request):
         
     return render(request, 'users/worker_form.html', {'form': form, 'title': 'Nuevo Trabajador'})
 
-@login_required
+@owner_or_superuser_required
 def worker_edit(request, pk):
     """Editar trabajador existente"""
-    if not request.user.is_owner:
-        raise PermissionDenied
         
     worker = get_object_or_404(User, pk=pk, organization=request.user.organization)
     

@@ -12,6 +12,7 @@ from apps.audit.utils import log_action
 from apps.core.models import Organization, set_current_tenant
 from .models import StampPromotion, StampCard, StampTransaction, StampRequest
 from django.utils import timezone
+from apps.core.decorators import owner_or_superuser_required
 
 def qr_request_stamp(request, slug):
     """Vista pública para solicitar un sello vía QR"""
@@ -153,7 +154,7 @@ def pending_requests_list(request):
         'pending_count': pending_count
     })
 
-@login_required
+@owner_or_superuser_required
 def promotion_list(request):
     """Listar promociones activas"""
     if not hasattr(request, 'tenant'):
@@ -173,7 +174,7 @@ def promotion_list(request):
         
     return render(request, 'stamps/promotion_list.html', {'promotions': promotions, 'form': form, 'title': 'Promociones de Sellos'})
 
-@login_required
+@owner_or_superuser_required
 def promotion_edit(request, pk):
     promo = get_object_or_404(StampPromotion, pk=pk, organization=request.tenant)
     if request.method == 'POST':

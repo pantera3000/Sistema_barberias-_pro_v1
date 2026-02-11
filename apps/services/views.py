@@ -4,8 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Service, ServiceCategory
 from .forms import ServiceForm, ServiceCategoryForm
+from apps.core.decorators import owner_or_superuser_required
 
-@login_required
+@owner_or_superuser_required
 def service_list(request):
     """Listar servicios y categorías"""
     if not hasattr(request, 'tenant') or not request.tenant:
@@ -21,7 +22,7 @@ def service_list(request):
     }
     return render(request, 'services/service_list.html', context)
 
-@login_required
+@owner_or_superuser_required
 def service_create(request):
     if request.method == 'POST':
         form = ServiceForm(request.POST, tenant=request.tenant)
@@ -36,7 +37,7 @@ def service_create(request):
         
     return render(request, 'services/service_form.html', {'form': form, 'title': 'Nuevo Servicio'})
 
-@login_required
+@owner_or_superuser_required
 def service_edit(request, pk):
     service = get_object_or_404(Service, pk=pk, organization=request.tenant)
     if request.method == 'POST':
@@ -50,7 +51,7 @@ def service_edit(request, pk):
         
     return render(request, 'services/service_form.html', {'form': form, 'title': f'Editar {service.name}'})
 
-@login_required
+@owner_or_superuser_required
 def service_delete(request, pk):
     service = get_object_or_404(Service, pk=pk, organization=request.tenant)
     service.delete()
@@ -59,7 +60,7 @@ def service_delete(request, pk):
 
 # --- Categories ---
 
-@login_required
+@owner_or_superuser_required
 def category_list(request):
     categories = ServiceCategory.objects.filter(organization=request.tenant)
     if request.method == 'POST':
@@ -75,7 +76,7 @@ def category_list(request):
         
     return render(request, 'services/category_list.html', {'categories': categories, 'form': form, 'title': 'Categorías'})
 
-@login_required
+@owner_or_superuser_required
 def category_delete(request, pk):
     cat = get_object_or_404(ServiceCategory, pk=pk, organization=request.tenant)
     cat.delete()

@@ -4,6 +4,12 @@ Lista de todos los puntos de restauración creados en este proyecto.
 
 | Hash | Fecha y Hora | Descripción |
 | :--- | :--- | :--- |
+| **Commit** | 2026-02-10 20:48:00 | - **Fix: Zona Horaria (Perú) y Notificaciones QR Ultra-Visuales**
+    - Sincronización total con hora de Lima para cumpleaños y reportes.
+    - Implementado sistema de alertas: Sonido, Toast, Pulsos y Banner Naranja.
+    - Refactorizado: Solicitudes QR movidas a su propia página dedicada.
+    - Optimización: El sonido solo suena una vez por nueva solicitud (SessionStorage). |
+| **Backup** | 2026-02-10 20:48:23 | - **Respado tras corrección de zona horaria y mejoras QR** |
 | **Commit** | 2026-02-10 13:20:00 | - **Mejora Premium: WhatsApp con Editor de Mensajes y 6 Plantillas**
     - Añadido **Editor de Mensajes (textarea)** en el modal de WhatsApp para personalización total.
     - Ampliada la librería a **6 plantillas premium** (Puntos, Premios, Fidelización, Cumpleaños, Novedades, Gracias).

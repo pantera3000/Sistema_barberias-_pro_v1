@@ -110,6 +110,32 @@
                     </div>
                     {% endif %}
                 </div>
+
+                <!-- Perfil de Usuario Logueado (NUEVO) -->
+                <div class="px-3 py-3 mb-2 mx-2 rounded-4 bg-light shadow-sm border">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            {% if user.avatar %}
+                                <img src="{{ user.avatar.url }}" class="rounded-circle shadow-sm border border-2 border-white" width="40" height="40" alt="{{ user.get_full_name }}">
+                            {% else %}
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm border border-2 border-white" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user small"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-grow-1 ms-3 overflow-hidden">
+                            <h6 class="mb-0 text-dark fw-bold text-truncate" style="font-size: 0.85rem;">
+                                {{ user.get_full_name|default:user.username }}
+                            </h6>
+                            <div class="d-flex align-items-center">
+                                <span class="badge {% if user.is_superuser %}bg-dark{% elif user.is_owner %}bg-primary{% elif user.is_staff_member %}bg-success{% else %}bg-secondary{% endif %} bg-opacity-10 {% if user.is_superuser %}text-dark{% elif user.is_owner %}text-primary{% elif user.is_staff_member %}text-success{% else %}text-secondary{% endif %} p-0 border-0" style="font-size: 0.65rem;">
+                                    <i class="fas fa-shield-alt me-1" style="font-size: 0.6rem;"></i>{{ user.role_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Reloj Global -->
                 <div class="px-3 mb-4 text-muted small fw-bold">
                     <i class="far fa-clock me-1 text-primary"></i> <span id="globalClock">--:--:--</span>
@@ -179,11 +205,13 @@
                                         <i class="fas fa-qrcode me-1"></i> Solicitudes QR
                                     </a>
                                 </li>
+                                {% if user.is_owner or user.is_superuser %}
                                 <li class="nav-item">
                                     <a class="nav-link py-1 small {% if 'promotion' in request.path %}text-primary fw-bold{% endif %}" href="{% url 'stamps:promotion_list' %}">
                                         <i class="fas fa-cog me-1"></i> Configurar
                                     </a>
                                 </li>
+                                {% endif %}
                             </ul>
                         </div>
                     </li>
@@ -195,14 +223,14 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.has_feature_services %}
+                    {% if user.has_feature_services and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'services' in request.path %}active{% endif %}" href="{% url 'services:service_list' %}">
                             <i class="fas fa-cut me-2"></i> Servicios
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.is_owner %}
+                    {% if user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'workers' in request.path %}active{% endif %}" href="{% url 'users:worker_list' %}">
                             <i class="fas fa-id-card-alt me-2"></i> Equipo
@@ -210,21 +238,21 @@
                     </li>
                     {% endif %}
                     
-                    {% if user.has_feature_rewards %}
+                    {% if user.has_feature_rewards and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'rewards' in request.path %}active{% endif %}" href="{% url 'rewards:reward_list' %}">
                             <i class="fas fa-gift me-2"></i> Premios
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.has_feature_reports %}
+                    {% if user.has_feature_reports and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'reports' in request.path %}active{% endif %}" href="{% url 'reports:transaction_report' %}">
                             <i class="fas fa-chart-line me-2"></i> Reportes
                         </a>
                     </li>
                     {% endif %}
-                    {% if user.has_feature_campaigns %}
+                    {% if user.has_feature_campaigns and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link d-flex justify-content-between align-items-center {% if 'campaigns' in request.path %}active{% endif %}" 
                            data-bs-toggle="collapse" href="#marketingSubmenu" role="button" 
@@ -251,7 +279,7 @@
                     </li>
                     {% endif %}
 
-                    {% if user.is_owner %}
+                    {% if user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'owner-control' in request.path %}active{% endif %}" href="{% url 'core:owner_dashboard' %}">
                             <i class="fas fa-shield-alt text-warning me-2"></i> Control de Dueño
@@ -259,7 +287,7 @@
                     </li>
                     {% endif %}
 
-                    {% if user.has_feature_audit %}
+                    {% if user.has_feature_audit and user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'audit' in request.path %}active{% endif %}" href="{% url 'audit:log_list' %}">
                             <i class="fas fa-history me-2"></i> Auditoría
@@ -267,11 +295,13 @@
                     </li>
                     {% endif %}
                     
+                    {% if user.is_owner or user.is_superuser %}
                     <li class="nav-item">
                         <a class="nav-link {% if 'settings' in request.path %}active{% endif %}" href="{% url 'core:tenant_settings' %}">
                             <i class="fas fa-cog me-2"></i> Configuración
                         </a>
                     </li>
+                    {% endif %}
                     {% endif %}
                     
                     <hr>

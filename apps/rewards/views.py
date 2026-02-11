@@ -7,8 +7,9 @@ from django.db.models import Sum
 from .models import Reward, Redemption
 from .forms import RewardForm, RedemptionForm
 from apps.loyalty.models import PointTransaction
+from apps.core.decorators import owner_or_superuser_required
 
-@login_required
+@owner_or_superuser_required
 def reward_list(request):
     """Listar catálogo de premios"""
     rewards = Reward.objects.filter(organization=request.tenant)
@@ -26,7 +27,7 @@ def reward_list(request):
 
     return render(request, 'rewards/reward_list.html', {'rewards': rewards, 'form': form, 'title': 'Catálogo de Recompensas'})
 
-@login_required
+@owner_or_superuser_required
 def reward_edit(request, pk):
     reward = get_object_or_404(Reward, pk=pk, organization=request.tenant)
     if request.method == 'POST':
