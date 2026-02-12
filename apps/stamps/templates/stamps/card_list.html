@@ -4,51 +4,45 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2">{{ title }}</h1>
-    <div class="btn-group gap-2">
-        <a href="{% url 'stamps:promotion_list' %}" class="btn btn-outline-secondary btn-lg shadow-sm">
-            <i class="fas fa-cog me-2"></i> Configurar Campañas
+<div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 header-compact">
+    <h1 class="h4 mb-0 fw-bold">{{ title }}</h1>
+    <div class="btn-group gap-1 gap-md-2">
+        <a href="{% url 'stamps:promotion_list' %}" class="btn btn-outline-secondary btn-sm btn-md-lg shadow-sm">
+            <i class="fas fa-cog"></i> <span class="d-none d-md-inline">Configurar Campañas</span>
         </a>
-        <button type="button" class="btn btn-primary btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#newCardModal">
-            <i class="fas fa-plus-circle me-2"></i> Nueva Tarjeta
+        <button type="button" class="btn btn-primary btn-sm btn-md-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#newCardModal">
+            <i class="fas fa-plus"></i> <span class="d-none d-md-inline">Nueva Tarjeta</span>
         </button>
     </div>
 </div>
 
-<!-- Stats Ribbon -->
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card p-3 shadow-sm border-0 bg-white d-flex flex-row align-items-center">
-            <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
-                <i class="fas fa-ticket-alt text-primary fa-lg"></i>
+<!-- Stats Ribbon Ultra Compact -->
+<div class="row g-2 mb-3">
+    <div class="col-4">
+        <div class="card p-2 shadow-sm border-0 bg-white text-center h-100">
+            <div class="kpi-mini-icon text-primary mx-auto mb-1">
+                <i class="fas fa-ticket-alt"></i>
             </div>
-            <div>
-                <h6 class="text-muted mb-0">Tarjetas Activas</h6>
-                <span class="h4 fw-bold mb-0">{{ stats.total_active }}</span>
-            </div>
+            <div class="kpi-mini-label text-muted">Tarjetas</div>
+            <div class="kpi-mini-value fw-bold">{{ stats.total_active }}</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card p-3 shadow-sm border-0 bg-white d-flex flex-row align-items-center border-start border-warning border-4">
-            <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
-                <i class="fas fa-bullhorn text-warning fa-lg"></i>
+    <div class="col-4">
+        <div class="card p-2 shadow-sm border-0 bg-white text-center h-100">
+            <div class="kpi-mini-icon text-warning mx-auto mb-1">
+                <i class="fas fa-bullhorn"></i>
             </div>
-            <div>
-                <h6 class="text-muted mb-0">Solicitados</h6>
-                <span class="h4 fw-bold mb-0">{{ stats.requested }}</span>
-            </div>
+            <div class="kpi-mini-label text-muted">Solicitados</div>
+            <div class="kpi-mini-value fw-bold">{{ stats.requested }}</div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card p-3 shadow-sm border-0 bg-white d-flex flex-row align-items-center">
-            <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
-                <i class="fas fa-stamp text-info fa-lg"></i>
+    <div class="col-4">
+        <div class="card p-2 shadow-sm border-0 bg-white text-center h-100">
+            <div class="kpi-mini-icon text-info mx-auto mb-1">
+                <i class="fas fa-stamp"></i>
             </div>
-            <div>
-                <h6 class="text-muted mb-0">Sellos Hoy</h6>
-                <span class="h4 fw-bold mb-0">{{ stats.stamps_today }}</span>
-            </div>
+            <div class="kpi-mini-label text-muted">Sellos Hoy</div>
+            <div class="kpi-mini-value fw-bold">{{ stats.stamps_today }}</div>
         </div>
     </div>
 </div>
@@ -157,10 +151,30 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Historial de Sellos -->
+<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="historyModalLabel">Historial de Sellos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="historyModalBody">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Base Styles */
     .stamp-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -216,7 +230,7 @@
     #customerResults {
         position: absolute;
         width: 100%;
-        z-index: 2000; /* Mucho más alto que el modal (1055) */
+        z-index: 2000;
         background: white;
     }
     .list-group-item-action {
@@ -225,26 +239,41 @@
     .list-group-item-action:hover {
         background-color: #f8f9fa;
     }
-</style>
-<!-- Modal Historial de Sellos -->
-<div class="modal fade" id="historyModal" tabindex="-1" aria-labelledby="historyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="historyModalLabel">Historial de Sellos</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4" id="historyModalBody">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
+    /* Radical Space Optimization for Stamp Management */
+    @media (max-width: 767.98px) {
+        .header-compact h1 { font-size: 1rem !important; }
+        .header-compact .btn { padding: 4px 10px !important; font-size: 0.65rem !important; }
+        
+        /* Stats Compact */
+        .kpi-mini-icon { font-size: 0.8rem; height: 20px; display: flex; align-items: center; justify-content: center; }
+        .kpi-mini-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0; margin-bottom: 0; opacity: 0.7; }
+        .kpi-mini-value { font-size: 0.9rem; line-height: 1; margin-top: 2px; }
+        
+        /* Search Bar Compact */
+        .card-body.p-2 { padding: 0.25rem !important; }
+        #searchInput { font-size: 0.75rem !important; }
+        #searchBtn { font-size: 0.75rem !important; padding: 2px 10px !important; }
+
+        /* General Row spacing */
+        .row.mb-3, .row.mb-4 { margin-bottom: 0.5rem !important; }
+
+        /* Stamp Grid Items */
+        .stamp-grid { padding: 8px !important; gap: 6px !important; border-width: 1px !important; }
+        .stamp-slot { border-width: 1px !important; }
+        .slot-number { font-size: 0.6rem !important; }
+        .stamp-slot i { font-size: 0.7rem !important; }
+        
+        .card-header.pt-4 { padding-top: 0.75rem !important; padding-bottom: 0 !important; }
+        .card-body.px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; padding-bottom: 0.75rem !important; }
+        
+        .card-header h5 { font-size: 0.9rem !important; }
+        .badge { font-size: 0.55rem !important; padding: 2px 6px !important; }
+        
+        .alert.py-2 { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+        .alert .fw-bold { font-size: 0.75rem !important; }
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}

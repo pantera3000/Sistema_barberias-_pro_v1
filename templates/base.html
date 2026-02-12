@@ -11,12 +11,102 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        body { background-color: #f8f9fa; }
-        .sidebar { min-height: 100vh; background-color: #ffffff; border-right: 1px solid #dee2e6; }
-        .nav-link { color: #495057; font-weight: 500; }
-        .nav-link.active { color: #0d6efd; background-color: #e9ecef; }
-        .nav-link:hover { color: #0d6efd; }
+        :root {
+            --sidebar-width: 280px;
+            --mobile-header-height: 60px;
+            --bottom-nav-height: 65px;
+            --primary-gradient: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        }
+
+        body { 
+            background-color: #f8f9fa; 
+            min-height: 100vh;
+        }
+
+        /* Sidebar Desktop */
+        .sidebar { 
+            min-height: 100vh; 
+            background-color: #ffffff; 
+            border-right: 1px solid #dee2e6; 
+            width: var(--sidebar-width);
+            z-index: 1000;
+        }
         
+        .nav-link { color: #495057; font-weight: 500; border-radius: 10px; margin: 2px 10px; transition: all 0.2s; }
+        .nav-link.active { color: #0d6efd; background-color: rgba(13, 110, 253, 0.1); }
+        .nav-link:hover { color: #0d6efd; background-color: #f1f5f9; }
+        
+        /* Mobile Navigation Elements */
+        .mobile-header {
+            display: none;
+            height: var(--mobile-header-height);
+            background: white;
+            border-bottom: 1px solid #eee;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1030;
+            padding: 0 1rem;
+        }
+
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: var(--bottom-nav-height);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #eee;
+            z-index: 1030;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+        }
+
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.65rem;
+            font-weight: 600;
+            gap: 4px;
+        }
+
+        .bottom-nav-item.active { color: #0d6efd; }
+        .bottom-nav-item i { font-size: 1.2rem; }
+
+        /* Floating Scan Button in Bottom Nav */
+        .scan-fab {
+            width: 55px;
+            height: 55px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: -35px;
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.4);
+            border: 4px solid white;
+        }
+        .scan-fab:hover { color: white; transform: scale(1.05); }
+
+        /* Responsive Behavior */
+        @media (max-width: 767.98px) {
+            .sidebar { display: none !important; }
+            .mobile-header { display: flex; align-items: center; justify-content: space-between; }
+            .bottom-nav { display: flex; }
+            main { 
+                padding-top: calc(var(--mobile-header-height) + 1rem) !important;
+                padding-bottom: calc(var(--bottom-nav-height) + 1.5rem) !important;
+            }
+            #sidebar.offcanvas { width: 280px; display: block !important; }
+        }
+
         /* Birthday Widget Styles */
         .birthday-widget {
             position: relative;
@@ -69,19 +159,98 @@
             animation: pending-pulse-orange 1.5s infinite;
             border-style: dashed !important;
         }
+
+        /* Radical Banner Compacting for Mobile */
+        @media (max-width: 767.98px) {
+            .birthday-banner, #qrPendingBanner {
+                font-size: 0.6rem !important;
+                padding-top: 1px !important;
+                padding-bottom: 1px !important;
+                min-height: 20px;
+            }
+            .birthday-banner .badge { font-size: 0.5rem; padding: 1px 4px; }
+            #qrPendingBanner .btn-light {
+                font-size: 0.55rem !important;
+                padding: 0px 6px !important;
+                min-height: 16px;
+                line-height: 1;
+            }
+            .birthday-banner i, #qrPendingBanner i { display: none !important; } /* Hide icons to save space */
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+{% if user.is_authenticated %}
+    <!-- Mobile Header (Visible only on mobile) -->
+    <header class="mobile-header d-md-none shadow-sm">
+        <button class="btn border-0 ps-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar">
+            <i class="fas fa-bars fs-3 text-dark"></i>
+        </button>
+        <h6 class="mb-0 fw-bold text-primary">
+            <i class="fas fa-cut me-1"></i> {{ request.tenant.name|default:"Loyalty System" }}
+        </h6>
+        <div class="d-flex align-items-center gap-2">
+            {% if has_birthday_today %}
+            <div class="birthday-widget" data-bs-toggle="modal" data-bs-target="#birthdayListModal">
+                <span class="cake-animation">🧁</span>
+                <span class="birthday-badge">{{ birthday_celebrants.count }}</span>
+            </div>
+            {% endif %}
+            <form action="{% url 'users:logout' %}" method="post" id="logout-form-mobile" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link text-danger p-0">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Bottom Navigation (Visible only on mobile) -->
+    <nav class="bottom-nav d-md-none">
+        <a href="{% url 'core:dashboard' %}" class="bottom-nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-th-large"></i>
+            <span>Inicio</span>
+        </a>
+        <a href="{% url 'customers:customer_list' %}" class="bottom-nav-item {% if 'customers' in request.path %}active{% endif %}">
+            <i class="fas fa-users"></i>
+            <span>Clientes</span>
+        </a>
+        <div class="bottom-nav-item" data-bs-toggle="modal" data-bs-target="#globalQRModal">
+            <div class="scan-fab">
+                <i class="fas fa-camera"></i>
+            </div>
+            <span style="margin-top: 5px;">Escanear</span>
+        </div>
+        {% if user.has_feature_campaigns %}
+        <a href="{% url 'campaigns:campaign_list' %}" class="bottom-nav-item {% if 'campaigns' in request.path %}active{% endif %}">
+            <i class="fas fa-bullhorn"></i>
+            <span>Marketing</span>
+        </a>
+        {% else %}
+        <a href="{% url 'stamps:card_list' %}" class="bottom-nav-item {% if 'stamps' in request.path %}active{% endif %}">
+            <i class="fas fa-ticket-alt"></i>
+            <span>Sellos</span>
+        </a>
+        {% endif %}
+        <a href="#" class="bottom-nav-item" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
+            <i class="fas fa-bars"></i>
+            <span>Menú</span>
+        </a>
+    </nav>
+{% endif %}
 {% if has_birthday_today %}
 <div class="birthday-banner py-2 text-white text-center shadow-sm" style="background: linear-gradient(90deg, #ff0080, #7928ca); z-index: 1050; position: relative;">
-    <div class="container-fluid">
-        <i class="fas fa-birthday-cake me-2 animate-bounce"></i>
-        <strong>¡Hoy es día de celebración!</strong> Cumplen años: 
-        {% for customer in birthday_celebrants %}
-            <span class="badge bg-white text-dark mx-1">{{ customer.get_full_name }}</span>
+    <div class="container-fluid px-2">
+        <i class="fas fa-birthday-cake me-1 animate-bounce"></i>
+        <strong class="d-none d-sm-inline">¡Hoy es día de celebración!</strong>
+        <span class="d-inline d-sm-none">🎂 Cumpleaños:</span>
+        {% for customer in birthday_celebrants|slice:":3" %}
+            <span class="badge bg-white text-dark mx-1 p-1 px-2">{{ customer.get_full_name|truncatechars:15 }}</span>
         {% endfor %}
-        <i class="fas fa-party-horn ms-2"></i>
+        {% if birthday_celebrants.count > 3 %}
+            <span class="small opacity-75">+{{ birthday_celebrants.count|add:"-3" }} más</span>
+        {% endif %}
     </div>
 </div>
 <style>
@@ -96,21 +265,27 @@
 
 <!-- Banner de Solicitudes QR Pendientes -->
 <div id="qrPendingBanner" class="py-2 text-white text-center shadow-sm" style="display: none; background: linear-gradient(90deg, #f59e0b, #d97706); z-index: 1049; position: relative;">
-    <div class="container-fluid">
-        <i class="fas fa-bell me-2 animate-bounce"></i>
-        <strong>¡Atención!</strong> Tienes <span id="qrBannerCount">0</span> solicitudes de sellos QR por aprobar.
-        <a href="{% url 'stamps:pending_requests_list' %}" class="btn btn-sm btn-light ms-3 rounded-pill px-3 fw-bold" style="color: #d97706; font-size: 0.75rem;">
-            Ver Solicitudes
+    <div class="container-fluid px-2">
+        <i class="fas fa-bell me-1 animate-bounce"></i>
+        <strong><span class="d-none d-sm-inline">¡Atención! Tienes</span><span class="d-inline d-sm-none">QR:</span></strong> 
+        <span id="qrBannerCount" class="fw-bold">0</span> pendientes
+        <a href="{% url 'stamps:pending_requests_list' %}" class="btn btn-sm btn-light ms-2 rounded-pill px-3 fw-bold" style="color: #d97706; font-size: 0.7rem;">
+            Ver <span class="d-none d-sm-inline">Solicitudes</span>
         </a>
     </div>
 </div>
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
+        <!-- Sidebar (Desktop + Offcanvas) -->
         {% if user.is_authenticated %}
-        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar collapse pt-3">
-            <div class="position-sticky">
-                <div class="d-flex align-items-center justify-content-between px-3 mb-2">
+        <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar offcanvas-md offcanvas-start border-end pt-3" tabindex="-1" aria-labelledby="sidebarLabel">
+            <div class="offcanvas-header d-md-none border-bottom mb-3">
+                <h5 class="offcanvas-title text-primary fw-bold" id="sidebarLabel"><i class="fas fa-cut"></i> Loyalty System</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebar"></button>
+            </div>
+            
+            <div class="offcanvas-body p-0 d-flex flex-column" style="height: 100%;">
+                <div class="d-none d-md-flex align-items-center justify-content-between px-3 mb-2">
                     <h5 class="mb-0 text-primary fw-bold"><i class="fas fa-cut"></i> Loyalty System</h5>
                     {% if has_birthday_today %}
                     <div class="birthday-widget" data-bs-toggle="modal" data-bs-target="#birthdayListModal" title="¡Hay cumpleañeros!">
@@ -122,8 +297,8 @@
                     {% endif %}
                 </div>
 
-                <!-- Perfil de Usuario Logueado (NUEVO) -->
-                <div class="px-3 py-3 mb-2 mx-2 rounded-4 bg-light shadow-sm border">
+                <!-- Perfil de Usuario Logueado -->
+                <div class="px-3 py-3 mb-2 mx-2 rounded-4 bg-light shadow-sm border mt-md-0 mt-3">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0">
                             {% if user.avatar %}
@@ -144,11 +319,12 @@
                                 </span>
                             </div>
                         </div>
+                    </div>
                 </div>
 
-                <!-- Plan Usage (NUEVO) -->
+                <!-- Plan Usage -->
                 {% if tenant_org and not user.is_superuser %}
-                <div class="px-3 mb-4">
+                <div class="px-3 mb-4 d-none d-md-block">
                     <div class="p-3 rounded-4 bg-dark text-white shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="small opacity-75" style="font-size: 0.7rem;">Plan Actual</span>
@@ -175,22 +351,24 @@
                 </div>
                 {% endif %}
 
-                <!-- Quick Access QR Scanner (PROMINENT) -->
-                <div class="px-3 mb-2">
-                    <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#globalQRModal">
-                        <i class="fas fa-camera me-2"></i> ESCANEAR QR
-                    </button>
-                </div>
-                <div class="px-3 mb-4">
-                    <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#globalStampModal">
-                        <i class="fas fa-stamp me-2"></i> PONER SELLO
-                    </button>
+                <!-- Quick Access Desktop Only -->
+                <div class="d-none d-md-block">
+                    <div class="px-3 mb-2">
+                        <button type="button" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#globalQRModal">
+                            <i class="fas fa-camera me-2"></i> ESCANEAR QR
+                        </button>
+                    </div>
+                    <div class="px-3 mb-4">
+                        <button type="button" class="btn btn-outline-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#globalStampModal">
+                            <i class="fas fa-stamp me-2"></i> PONER SELLO
+                        </button>
+                    </div>
                 </div>
 
-                <ul class="nav flex-column">
+                <ul class="nav flex-column mb-auto">
                     {% if user.is_superuser %}
                     <li class="nav-item">
-                        <small class="text-muted px-3 text-uppercase">Superadmin</small>
+                        <small class="text-muted px-4 text-uppercase fw-bold" style="font-size: 0.65rem;">Superadmin</small>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if '/superadmin/search/' in request.path %}active{% endif %}" href="{% url 'superadmin:master_search' %}">
