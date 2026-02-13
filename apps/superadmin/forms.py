@@ -13,13 +13,16 @@ class OrganizationForm(forms.ModelForm):
     
     class Meta:
         model = Organization
-        fields = ['name', 'slug', 'plan', 'timezone', 'currency', 'logo', 'is_active']
+        fields = ['name', 'slug', 'plan', 'timezone', 'currency', 'primary_color', 'custom_background_image', 'custom_background_color', 'logo', 'is_active']
         widgets = {
             'plan': forms.Select(attrs={'class': 'form-select'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'slug': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Dejar vacío para autogenerar'}),
             'timezone': forms.TextInput(attrs={'class': 'form-control'}),
             'currency': forms.TextInput(attrs={'class': 'form-control'}),
+            'primary_color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control'}),
+            'custom_background_color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control'}),
+            'custom_background_image': forms.FileInput(attrs={'class': 'form-control'}),
             'logo': forms.FileInput(attrs={'class': 'form-control'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }

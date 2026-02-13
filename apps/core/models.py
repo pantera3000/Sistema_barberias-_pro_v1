@@ -33,6 +33,8 @@ class Organization(models.Model):
     # Configuración básica
     logo = models.ImageField(upload_to='logos/', null=True, blank=True, verbose_name="Logo")
     primary_color = models.CharField(max_length=7, default='#3B82F6', verbose_name="Color Primario")
+    custom_background_image = models.ImageField(upload_to='backgrounds/', null=True, blank=True, verbose_name="Imagen de Fondo")
+    custom_background_color = models.CharField(max_length=7, default='#f8fafc', verbose_name="Color de Fondo")
     timezone = models.CharField(max_length=50, default='America/Lima', verbose_name="Zona Horaria")
     currency = models.CharField(max_length=3, default='PEN', verbose_name="Moneda")
     

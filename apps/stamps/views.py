@@ -117,6 +117,17 @@ def public_lookup(request, slug):
             cards = StampCard.objects.filter(customer=customer, is_redeemed=False).select_related('promotion').order_by('-current_stamps')
             # Filtrar expiradas
             cards = [c for c in cards if not c.is_expired]
+            
+            # Buscar solicitudes pendientes
+            from .models import StampRequest
+            pending_reqs = StampRequest.objects.filter(
+                customer=customer,
+                status='PENDING'
+            ).values('promotion_id').annotate(count=models.Count('id'))
+            
+            pending_map = {p['promotion_id']: p['count'] for p in pending_reqs}
+            for card in cards:
+                card.pending_count = pending_map.get(card.promotion_id, 0)
         else:
             messages.info(request, "No encontramos ninguna tarjeta con ese número.")
 
@@ -126,7 +137,8 @@ def public_lookup(request, slug):
         'cards': cards,
         'phone': phone,
         'days_range': range(1, 32),
-        'title': 'Consultar mis Sellos'
+        'title': 'Consultar mis Sellos',
+        'hide_navbar': True
     })
 
 @login_required
@@ -723,7 +735,8 @@ def customer_kiosk(request):
         'stamp_url': stamp_url,
         'active_cards': active_cards,
         'completed_cards': completed_cards,
-        'title': 'Modo Kiosko'
+        'title': 'Modo Kiosko',
+        'hide_navbar': True
     })
 
 def request_redemption(request, pk):

@@ -39,7 +39,8 @@ class OrganizationSettingsForm(forms.ModelForm):
     class Meta:
         model = Organization
         fields = [
-            'name', 'primary_color', 'timezone', 'currency', 
+            'name', 'primary_color', 'custom_background_image', 'custom_background_color',
+            'timezone', 'currency', 
             'opening_time', 'closing_time',
             'stamp_lock_hours', 'stamp_lock_minutes', 'stamps_expiration_months',
             'double_stamp_mon', 'double_stamp_tue', 'double_stamp_wed', 
@@ -47,6 +48,8 @@ class OrganizationSettingsForm(forms.ModelForm):
         ]
         widgets = {
             'primary_color': forms.TextInput(attrs={'type': 'color'}),
+            'custom_background_color': forms.TextInput(attrs={'type': 'color'}),
+            'custom_background_image': forms.FileInput(attrs={'class': 'form-control'}),
             'opening_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'closing_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
         }
