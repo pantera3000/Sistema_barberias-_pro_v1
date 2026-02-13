@@ -1,6 +1,13 @@
 import os
 import sys
 
+# Monkey-patch para usar PyMySQL en lugar de mysqlclient (evita errores de compilación en cPanel)
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 # Ruta a tu aplicación
 sys.path.insert(0, os.path.dirname(__file__))
 
