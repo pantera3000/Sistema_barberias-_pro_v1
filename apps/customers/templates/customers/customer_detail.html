@@ -24,7 +24,27 @@
     }
     .wa-float:hover {
         transform: scale(1.1);
-        color: #fff;
+        color: white;
+    }
+
+    /* Estilos para Plantillas de WhatsApp */
+    .wa-template-btn {
+        transition: all 0.2s ease;
+        border-left: 4px solid transparent !important;
+    }
+    .wa-template-btn:hover {
+        background-color: #f0fdf4 !important;
+        border-left-color: #22c55e !important;
+        padding-left: 1.25rem !important;
+    }
+    .wa-template-btn.active {
+        background-color: #f0fdf4 !important;
+        color: inherit !important;
+        border-left-color: #10b981 !important;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+    }
+    .wa-template-btn.active h6 {
+        color: #10b981 !important;
     }
     .tag-badge {
         font-size: 0.7rem;
@@ -96,9 +116,16 @@
                             <i class="fas fa-edit me-1"></i> Editar
                         </a>
                         {% if customer.phone %}
-                        <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#waModal" data-template-index="0">
-                            <i class="fab fa-whatsapp me-1"></i> Enviar Accesos
-                        </button>
+                            {% if birthday_info.is_today %}
+                            <button type="button" id="detail-bday-btn" class="btn btn-sm btn-warning rounded-pill px-3 shadow-sm pulse-animation fw-bold" 
+                                    onclick="openGlobalWaModal('{{ customer.phone|cut:' ' }}', '{{ customer.first_name|escapejs }}', { templateName: 'Cumpleaños', customerId: '{{ customer.id }}' })">
+                                <i class="fab fa-whatsapp me-1"></i> ¡FELICITAR HOY! 🎂
+                            </button>
+                            {% endif %}
+                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm" 
+                                    onclick="openGlobalWaModal('{{ customer.phone|cut:' ' }}', '{{ customer.first_name|escapejs }}', { templateIndex: 0, dni: '{{ customer.dni|default:''|escapejs }}', customerId: '{{ customer.id }}' })">
+                                <i class="fab fa-whatsapp me-1"></i> Enviar Accesos
+                            </button>
                         {% endif %}
                         <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#deleteCustomerModal">
                             <i class="fas fa-trash me-1"></i> Eliminar
@@ -204,9 +231,11 @@
                             <div class="d-flex align-items-center">
                                 <span class="fw-bold small me-2">{{ customer.phone|default:"No registrado" }}</span>
                                 {% if customer.phone %}
-                                <a href="#" class="btn btn-sm btn-success p-1 px-2" data-bs-toggle="modal" data-bs-target="#waModal" title="Enviar WhatsApp">
+                                <button type="button" class="btn btn-sm btn-success p-1 px-2" 
+                                        onclick="openGlobalWaModal('{{ customer.phone|cut:' ' }}', '{{ customer.first_name|escapejs }}', { dni: '{{ customer.dni|default:''|escapejs }}', puntos: '{{ customer.total_points|default:0 }}', customerId: '{{ customer.id }}' })" 
+                                        title="Enviar WhatsApp">
                                     <i class="fab fa-whatsapp"></i>
-                                </a>
+                                </button>
                                 {% endif %}
                             </div>
                         </li>
@@ -216,12 +245,9 @@
                                 <span class="fw-bold small d-block">{{ customer.birthday_display }}</span>
                                 {% if birthday_info.days_to is not None %}
                                     {% if birthday_info.is_today %}
-                                        <span class="badge bg-warning text-dark border border-warning border-opacity-50 pulse-animation">
+                                        <span class="badge bg-warning text-dark border border-warning border-opacity-50 small pulse-animation">
                                             ¡Hoy cumple años! 🎉
                                         </span>
-                                        <a href="#" class="btn btn-sm btn-warning d-block mt-1 fw-bold wa-bday-btn shadow-sm" data-bs-toggle="modal" data-bs-target="#waModal" data-template-index="4">
-                                            <i class="fab fa-whatsapp me-1"></i> Felicitar
-                                        </a>
                                     {% elif birthday_info.days_to <= 7 %}
                                         <span class="badge bg-info-subtle text-info border border-info border-opacity-10 small">
                                             {{ birthday_info.message }}
@@ -344,21 +370,29 @@
                                 </div>
                                 <div class="card-footer bg-white border-0 py-3">
                                     {% if card.redemption_requested %}
-                                    <button type="button" class="btn btn-sm btn-success w-100 fw-bold btn-redeem-card shadow-sm" 
-                                            data-bs-toggle="modal" data-bs-target="#redeemCardModal" 
-                                            data-bs-id="{{ card.id }}" data-bs-name="{{ card.promotion.name }}">
-                                        <i class="fas fa-check-circle me-1"></i> CONFIRMAR CANJE
-                                    </button>
+                                    <form action="/app/stamps/cards/{{ card.id }}/redeem/?next={{ request.path|urlencode }}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-success w-100 fw-bold shadow-sm" 
+                                                onclick="openConfirmRedeemModal(event, '{{ customer.full_name|escapejs }}', '{{ card.promotion.name|escapejs }}')">
+                                            <i class="fas fa-check-circle me-1"></i> CONFIRMAR CANJE
+                                        </button>
+                                    </form>
                                     {% elif card.is_completed and not card.is_redeemed %}
-                                    <button type="button" class="btn btn-sm btn-warning w-100 fw-bold btn-redeem-card" 
-                                            data-bs-toggle="modal" data-bs-target="#redeemCardModal" 
-                                            data-bs-id="{{ card.id }}" data-bs-name="{{ card.promotion.name }}">
-                                        <i class="fas fa-gift me-1"></i> Entregar Premio
-                                    </button>
+                                    <form action="/app/stamps/cards/{{ card.id }}/redeem/?next={{ request.path|urlencode }}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-warning w-100 fw-bold" 
+                                                onclick="openConfirmRedeemModal(event, '{{ customer.full_name|escapejs }}', '{{ card.promotion.name|escapejs }}')">
+                                            <i class="fas fa-gift me-1"></i> Entregar Premio
+                                        </button>
+                                    </form>
                                     {% elif not card.is_completed and not card.is_expired %}
-                                    <a href="{% url 'stamps:add_stamp_customer' customer.id %}?promotion_id={{ card.promotion.id }}" class="btn btn-sm btn-primary w-100">
-                                        <i class="fas fa-plus me-1"></i> Añadir Sello
-                                    </a>
+                                    <form action="{% url 'stamps:add_stamp_customer' customer.id %}?promotion_id={{ card.promotion.id }}&next={{ request.path|urlencode }}" method="post">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-primary w-100" 
+                                                onclick="openConfirmStampModal(event, '{{ customer.full_name|escapejs }}', '{{ card.promotion.name|escapejs }}')">
+                                            <i class="fas fa-plus me-1"></i> Añadir Sello
+                                        </button>
+                                    </form>
                                     {% endif %}
                                 </div>
                             </div>
@@ -439,7 +473,7 @@
                             <div class="timeline-content">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                     <h6 class="mb-0 fw-bold small text-dark">{{ log.get_action_display }}</h6>
-                                    <small class="text-muted" style="font-size: 0.7rem;"><i class="far fa-clock me-1"></i>{{ log.created_at|timesince }}</small>
+                                    <small class="text-muted" style="font-size: 0.7rem;"><i class="far fa-clock me-1"></i>{{ log.created_at|date:"d/m/Y H:i" }}</small>
                                 </div>
                                 <p class="mb-1 text-muted small" style="line-height: 1.3;">{{ log.description }}</p>
                                 
@@ -461,136 +495,14 @@
                 </div>
             </div>
         </div>
-    <!-- Modal Confirmar Canje -->
-    <div class="modal fade" id="redeemCardModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content text-center">
-                <div class="modal-header border-0 pb-0">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body pb-4">
-                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-inline-flex justify-content-center align-items-center mb-4" style="width: 80px; height: 80px;">
-                        <i class="fas fa-gift fa-2x"></i>
-                    </div>
-                    <h4 class="fw-bold mb-2">¿Entregar premio?</h4>
-                    <p class="text-muted mb-0">Estás por marcar como entregado el premio de la promoción: <br><strong id="redeemPromoName"></strong></p>
-                    <p class="small text-muted mt-2">La tarjeta se archivará y quedará registrada como canjeada.</p>
-                </div>
-                <div class="modal-footer border-0 p-3 pt-0 d-flex gap-2">
-                    <button type="button" class="btn btn-light flex-grow-1 py-2 fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <a id="confirmRedeemBtn" href="#" class="btn btn-warning flex-grow-1 py-2 fw-bold px-4">Sí, Entregar</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal WhatsApp -->
-    <div class="modal fade" id="waModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="fw-bold">Enviar Mensaje a {{ customer.first_name }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-primary border-0 shadow-sm mb-3 d-flex align-items-center">
-                        <i class="fas fa-key fa-2x me-3 opacity-50"></i>
-                        <div>
-                            <h6 class="fw-bold mb-0 small">Acceso Panel Premium</h6>
-                            <p class="small mb-0 opacity-75">Envía las credenciales y el link de acceso al cliente.</p>
-                        </div>
-                    </div>
-                    <p class="text-muted small mb-2">1. Selecciona una plantilla:</p>
-                    <div class="list-group list-group-flush border rounded-3 mb-3" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6 !important;">
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn bg-primary bg-opacity-10 border-primary border-opacity-25" 
-                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Bienvenido a nuestro programa Premium de {{ request.tenant.name|default:'la barbería' }}. 💈
-
-Tu llave de acceso está lista. Pulsa aquí para entrar:
-
-🔗 LINK PANEL PREMIUM:
-{{ request.scheme }}://{{ request.get_host }}{% url 'customers:customer_login' request.tenant.slug %}
-
-📱 CONSULTA RÁPIDA (Sin login):
-{{ request.scheme }}://{{ request.get_host }}{% url 'stamps:public_lookup' request.tenant.slug %}
-
-🔐 TUS CREDENCIALES:
-- Usuario: {{ customer.phone }}
-- Contraseña: {% if customer.dni and customer.dni != 'None' %}{{ customer.dni }}{% else %}(verificar DNI){% endif %} (tu DNI)
-
-¡Te esperamos pronto!{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small text-primary"><i class="fas fa-star me-1"></i> BIENVENIDA Y ACCESO PREMIUM</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Mensaje de bienvenida con link y contraseña (DNI).</small>
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn" 
-                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Te escribimos de {{ request.tenant.name|default:'la barbería' }}.
-
-Solo queríamos recordarte que tienes *{{ customer.total_points|default:0 }} puntos* acumulados en tu cuenta. 🌟
-
-¡Te falta muy poco para tu próximo premio! ✨ Te esperamos para tu próximo servicio. 💈{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small">Recordatorio de Puntos</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Informa sobre sus puntos actuales.</small>
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="{% filter urlencode %}¡Buenas noticias, {{ customer.first_name }}! 🎁✨
-
-¡Ya tienes un premio listo para canjear en tu tarjeta de sellos! 🎊
-
-Pásate hoy mismo por {{ request.tenant.name|default:'la barbería' }} para disfrutar de tu recompensa. ¡Te lo has ganado! 💈👑{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small">Aviso de Premio Listo</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Para clientes con canjes disponibles.</small>
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Te extrañamos en {{ request.tenant.name|default:'la barbería' }}. 💈✂️
-
-Hace tiempo que no nos visitas y tu cabello lo sabe. 😉 ¿Qué tal si agendamos un espacio para ti esta semana?
-
-¡Vuelve a lucir tu mejor versión con nosotros! 👊✨{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small">Re-engagement</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Para clientes ausentes.</small>
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="{% filter urlencode %}¡Feliz cumpleaños, {{ customer.first_name }}! 🎂🥳
-
-De parte de todo el equipo de {{ request.tenant.name|default:'la barbería' }}, te deseamos un día espectacular. ✨
-
-Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándote. 🎁 
-
-¡Ven a celebrar con nosotros y luce impecable en tu día! ✂️💈{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small">Saludo de Cumpleaños</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Felicita al cliente en su día.</small>
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 Tenemos una *nueva promoción* en {{ request.tenant.name|default:'la barbería' }} que te va a encantar. 💎✨
-
-Pregunta por ella en tu próxima visita y aprovecha los beneficios. ¡No te la pierdas! 💈🚀{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small">Nueva Promoción</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Anuncia novedades y servicios.</small>
-                        </button>
-                        <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn"
-                                data-message="{% filter urlencode %}¡Hola {{ customer.first_name }}! 👋 ¡Muchas gracias por tu visita de hoy! ✨💈
-
-Esperamos que te haya gustado el servicio. Nos encantaría verte pronto de nuevo por {{ request.tenant.name|default:'la barbería' }}.
-
-¡Que tengas un excelente día! 👊⚡{% endfilter %}">
-                            <h6 class="mb-1 fw-bold small">Agradecimiento Visita</h6>
-                            <small class="text-muted" style="font-size: 0.7rem;">Post-servicio inmediato.</small>
-                        </button>
-                    </div>
-
-                    <p class="text-muted small mb-2">2. Edita tu mensaje antes de enviar:</p>
-                    <div class="mb-3">
-                        <textarea id="waMessageEditor" class="form-control" rows="4" placeholder="Selecciona una plantilla o escribe aquí..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 p-3 pt-0">
-                    <button type="button" id="waSendFinalBtn" class="btn btn-success w-100 py-2 fw-bold">
-                        <i class="fab fa-whatsapp me-1"></i> Enviar a WhatsApp
-                    </button>
-                </div>
+    <!-- Custom Stamp Modals -->
+    {% include 'stamps/partials/stamp_modals.html' %}
 
     <!-- Floating WhatsApp Button -->
     {% if customer.phone %}
-    <a href="#" class="wa-float" data-bs-toggle="modal" data-bs-target="#waModal" title="Enviar WhatsApp">
+    <a href="javascript:void(0)" class="wa-float" 
+       onclick="openGlobalWaModal('{{ customer.phone|cut:' ' }}', '{{ customer.first_name|escapejs }}', { dni: '{{ customer.dni|default:''|escapejs }}', puntos: '{{ customer.total_points|default:0 }}', customerId: '{{ customer.id }}' })" 
+       title="Enviar WhatsApp">
         <i class="fab fa-whatsapp"></i>
     </a>
     {% endif %}
@@ -599,130 +511,63 @@ Esperamos que te haya gustado el servicio. Nos encantaría verte pronto de nuevo
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    function smartBack() {
-        if (document.referrer && document.referrer.includes(window.location.host)) {
-            window.history.back();
-        } else {
-            window.location.href = "{% url 'customers:customer_list' %}";
-        }
-    }
-
-    function resolveRequest(id, action) {
-        const formData = new FormData();
-        formData.append('action', action);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-        const row = document.getElementById(`request-row-${id}`);
-        row.style.opacity = '0.5';
-        row.style.pointerEvents = 'none';
-
-        fetch(`/app/stamps/api/requests/${id}/resolve/`, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' || data.status === 'ok') {
-                if (data.redirect_url) {
-                    window.location.href = data.redirect_url;
-                } else {
-                    row.remove();
-                    // Opcional: Recargar la página si era la última solicitud para limpiar el contenedor
-                    if (document.querySelectorAll('[id^="request-row-"]').length === 0) {
-                        location.reload();
-                    }
-                }
+    {% include 'stamps/partials/stamp_modals_js.html' %}
+    <script>
+        function smartBack() {
+            if (document.referrer && document.referrer.includes(window.location.host)) {
+                window.history.back();
             } else {
-                alert("Error: " + data.error);
-                row.style.opacity = '1';
-                row.style.pointerEvents = 'auto';
+                window.location.href = "{% url 'customers:customer_list' %}";
             }
-        });
-    }
+        }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const redeemModal = document.getElementById('redeemCardModal');
-        if (redeemModal) {
-            redeemModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const cardId = button.getAttribute('data-bs-id');
-                const promoName = button.getAttribute('data-bs-name');
-                
-                const confirmBtn = redeemModal.querySelector('#confirmRedeemBtn');
-                const nameSpan = redeemModal.querySelector('#redeemPromoName');
-                
-                nameSpan.textContent = `${promoName} #${cardId}`;
-                // Redirigir de vuelta a esta misma página después del canje
-                const currentPath = window.location.pathname;
-                confirmBtn.href = `/app/stamps/cards/${cardId}/redeem/?next=${encodeURIComponent(currentPath)}`;
+        function resolveRequest(id, action) {
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+            const row = document.getElementById(`request-row-${id}`);
+            row.style.opacity = '0.5';
+            row.style.pointerEvents = 'none';
+
+            fetch(`/app/stamps/api/requests/${id}/resolve/`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' || data.status === 'ok') {
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        row.remove();
+                        if (document.querySelectorAll('[id^="request-row-"]').length === 0) {
+                            location.reload();
+                        }
+                    }
+                } else {
+                    alert("Error: " + data.error);
+                    row.style.opacity = '1';
+                    row.style.pointerEvents = 'auto';
+                }
             });
         }
 
-        // WhatsApp Messaging
-        const templateBtns = document.querySelectorAll('.wa-template-btn');
-        const waEditor = document.getElementById('waMessageEditor');
-        const waSendBtn = document.getElementById('waSendFinalBtn');
-        const waModal = document.getElementById('waModal');
-
-        if (waModal) {
-            waModal.addEventListener('show.bs.modal', function(event) {
-                const triggerBtn = event.relatedTarget;
-                const templateIndex = triggerBtn ? triggerBtn.getAttribute('data-template-index') : null;
-                
-                if (templateIndex !== null) {
-                    const targetBtn = templateBtns[parseInt(templateIndex)];
-                    if (targetBtn) {
-                        targetBtn.click(); // Simular click para cargar mensaje y estilo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Real-time feedback for birthday button
+            document.addEventListener('whatsapp-sent', function(e) {
+                const customerId = e.detail.customerId;
+                // Verificar si estamos en el perfil del cliente correcto
+                if (customerId == "{{ customer.id }}") {
+                    const bdayBtn = document.getElementById('detail-bday-btn');
+                    if (bdayBtn) {
+                        bdayBtn.disabled = true;
+                        bdayBtn.classList.remove('btn-warning', 'pulse-animation');
+                        bdayBtn.classList.add('btn-success', 'opacity-75');
+                        bdayBtn.innerHTML = '<i class="fas fa-check-circle me-1"></i> ¡FELICITADO! ✨';
                     }
                 }
             });
-        }
-
-        templateBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const message = this.getAttribute('data-message');
-                if (waEditor) {
-                    // Decodificar para que se vea bien en el editor (con saltos de línea reales)
-                    try {
-                        waEditor.value = decodeURIComponent(message.replace(/\+/g, ' '));
-                    } catch (e) {
-                        waEditor.value = message;
-                    }
-                    // Efecto visual de selección
-                    templateBtns.forEach(b => b.classList.remove('active', 'bg-light'));
-                    this.classList.add('bg-light');
-                }
-            });
         });
-
-        if (waSendBtn) {
-            waSendBtn.addEventListener('click', function() {
-                const messageText = waEditor.value.trim();
-                const templateName = document.querySelector('.wa-template-btn.bg-light')?.querySelector('h6')?.innerText || "Personalizado";
-                
-                if (messageText === "") {
-                    alert("Por favor, selecciona una plantilla o escribe un mensaje.");
-                    return;
-                }
-
-                // Registrar en el historial vía AJAX
-                fetch("{% url 'customers:log_whatsapp_message' customer.id %}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: `template_name=${encodeURIComponent(templateName)}`
-                }).then(response => {
-                    const finalMessage = encodeURIComponent(messageText);
-                    const phone = "{{ customer.phone }}".replace(/\D/g,'');
-                    window.open(`https://wa.me/${phone}?text=${finalMessage}`, '_blank');
-                    // Recargar opcionalmente o avisar
-                    console.log("WhatsApp log registrado");
-                });
-            });
-        }
-    });
-</script>
+    </script>
 {% endblock %}

@@ -118,75 +118,73 @@
         gap: 1.5rem;
     }
 
+    /* Responsive Adjustments */
     @media (max-width: 992px) {
         .main-grid { grid-template-columns: 1fr; }
     }
 
-    .content-card {
-        background: white;
-        border-radius: 24px;
-        padding: 1.5rem;
-        border: 1px solid rgba(0,0,0,0.05);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    @media (max-width: 767.98px) {
+        .dashboard-container { padding: 0.25rem 0.5rem; }
+        .dashboard-header {
+            padding: 0.4rem !important;
+            margin-bottom: 0.5rem !important;
+            gap: 2px !important;
+        }
+        .greeting-title { font-size: 1rem !important; margin-bottom: 0 !important; }
+        .dashboard-header p { display: none !important; } /* Radical: hide subtext */
+        
+        .dashboard-header .d-flex {
+            gap: 4px !important;
+            margin-top: 2px;
+        }
+
+        /* Radical small buttons */
+        .dashboard-header .btn-primary, .dashboard-header .btn-dark {
+            padding: 2px 8px !important;
+            font-size: 0.6rem !important;
+            min-height: 22px;
+            line-height: 1;
+        }
+        .dashboard-header .btn i {
+            display: none !important; /* Save more space */
+        }
+
+        /* KPI Minimalism */
+        .kpi-card {
+            padding: 0.35rem !important;
+            min-height: auto !important;
+            border-radius: 8px !important;
+            border: 1px solid rgba(0,0,0,0.05) !important;
+        }
+        .kpi-icon { display: none !important; } /* Hide icons to save space */
+        .kpi-label {
+            font-size: 0.55rem !important;
+            margin-bottom: 0px !important;
+            color: #64748b !important;
+        }
+        .kpi-value {
+            font-size: 0.95rem !important;
+            margin-bottom: 0 !important;
+            line-height: 1 !important;
+        }
+        .kpi-trend, .opacity-50, .progress, .kpi-card .small.fw-bold {
+            display: none !important; 
+        }
+
+        /* Birthday ultra compact */
+        .birthday-section {
+            padding: 2px 10px !important;
+            margin-bottom: 0.5rem !important;
+            border-radius: 6px !important;
+            gap: 5px !important;
+        }
+        .birthday-section .fs-2 { font-size: 0.8rem !important; }
+        .birthday-section p { font-size: 0.6rem !important; }
     }
 
-    .card-title-dash {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+    @media (max-width: 575.98px) {
+        .dashboard-container { padding: 0.75rem 0; }
     }
-
-    /* Ranking Table Tiny */
-    .ranking-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .ranking-row {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        background: #f8fafc;
-        border-radius: 12px;
-        transition: background 0.2s;
-    }
-
-    .ranking-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: var(--dash-primary);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.8rem;
-        margin-right: 0.75rem;
-    }
-
-    /* Quick Shortcuts Overlay */
-    .shortcut-btn {
-        border-radius: 16px;
-        padding: 1.25rem;
-        text-align: center;
-        color: white;
-        text-decoration: none;
-        transition: filter 0.2s;
-    }
-
-    .shortcut-btn:hover {
-        filter: brightness(1.1);
-        color: white;
-    }
-
-    .bg-indigo-600 { background-color: #4f46e5; }
-    .bg-emerald-600 { background-color: #059669; }
 </style>
 
 <div class="dashboard-container">
@@ -194,15 +192,15 @@
     {% if has_birthday_today %}
     <div class="birthday-section animate__animated animate__fadeIn">
         <div class="fs-2">🎂</div>
-        <div class="flex-grow-1">
-            <h6 class="fw-bold mb-1" style="color: #92400e;">¡Día de fiesta!</h6>
-            <p class="small mb-0 text-muted">Existen <strong>{{ birthday_celebrants.count }}</strong> clientes de cumpleaños hoy. 
-                <a href="{% url 'customers:customer_list' %}?birthday=today" class="fw-bold text-decoration-none" style="color: #b45309;">Ver lista <i class="fas fa-arrow-right ms-1"></i></a>
+        <div class="d-flex align-items-center justify-content-between flex-grow-1">
+            <p class="mb-0 small" style="color: #92400e; line-height: 1.2;">
+                <strong>¡Día de fiesta!</strong> ({{ birthday_celebrants.count }}) 
+                <a href="{% url 'customers:customer_list' %}?birthday=today" class="fw-bold ms-1" style="color: #b45309;">Ver lista <i class="fas fa-arrow-right ms-1"></i></a>
             </p>
+            <button class="btn btn-sm btn-outline-warning border-0 p-0 ms-2" onclick="this.closest('.birthday-section').remove()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <button class="btn btn-sm btn-outline-warning border-0 rounded-circle" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
     </div>
     {% endif %}
 
@@ -226,64 +224,110 @@
                 <i class="fas fa-ellipsis-v"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg" style="border-radius: 15px;">
+                {% if user.is_owner %}
                 <li><a class="dropdown-item py-2" href="{% url 'core:tenant_settings' %}"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                {% endif %}
+                <li><a class="dropdown-item py-2" href="{% url 'users:logout' %}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item py-2 text-primary" href="javascript:location.reload()"><i class="fas fa-sync me-2"></i> Refrescar datos</a></li>
             </ul>
+            <form id="logout-form" action="{% url 'users:logout' %}" method="POST" class="d-none">
+                {% csrf_token %}
+            </form>
         </div>
     </header>
 
-    <!-- KPI Bento Grid -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-2">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.1); color: #6366f1;">
                     <i class="fas fa-users"></i>
                 </div>
-                <div class="kpi-label">Clientes Totales</div>
+                <div class="kpi-label">Clientes</div>
                 <div class="kpi-value">{{ total_customers }}</div>
-                <div class="small fw-bold text-success">
+                <div class="small fw-bold text-success" style="font-size: 0.65rem;">
                     <i class="fas fa-trending-up me-1"></i> +{{ new_customers_today }} hoy
                 </div>
             </div>
         </div>
-        {% if user.has_feature_reports %}
-        <div class="col-md-3">
+        {% if user.is_owner and user.has_feature_reports %}
+        <div class="col-6 col-md-2">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
                     <i class="fas fa-wallet"></i>
                 </div>
-                <div class="kpi-label">Recaudación Est.</div>
-                <div class="kpi-value">{{ user.organization.currency }} {{ estimated_revenue }}</div>
-                <div class="progress mt-1" style="height: 6px; border-radius: 10px;">
+                <div class="kpi-label">Ingresos</div>
+                <div class="kpi-value" style="font-size: 1.1rem;">{{ user.organization.currency }}{{ estimated_revenue }}</div>
+                <div class="progress mt-1" style="height: 4px; border-radius: 10px;">
                     <div class="progress-bar bg-success" style="width: 75%"></div>
                 </div>
             </div>
         </div>
         {% endif %}
         {% if user.has_feature_points or user.has_feature_stamps %}
-        <div class="col-md-3">
+        <div class="col-6 col-md-2">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
                     <i class="fas fa-heart"></i>
                 </div>
                 <div class="kpi-label">Retención</div>
                 <div class="kpi-value">{{ retention_rate }}%</div>
-                <div class="kpi-trend small text-muted">Basado en recurrencia</div>
+                <div class="kpi-trend opacity-50" style="font-size: 0.6rem;">Fidelidad</div>
             </div>
         </div>
         {% endif %}
         {% if user.has_feature_points %}
-        <div class="col-md-3">
+        <div class="col-6 col-md-2">
             <div class="kpi-card">
                 <div class="kpi-icon" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4;">
                     <i class="fas fa-star"></i>
                 </div>
-                <div class="kpi-label">Puntos Hoy</div>
+                <div class="kpi-label">Puntos</div>
                 <div class="kpi-value">{{ points_today }}</div>
-                <div class="small text-muted">Interacción de fidelidad</div>
+                <div class="opacity-50" style="font-size: 0.6rem;">Otorgados hoy</div>
             </div>
         </div>
+        {% endif %}
+        {% if user.has_feature_points or user.has_feature_stamps %}
+        <div class="col-6 col-md-2">
+            <div class="kpi-card border-success-subtle shadow-sm">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="kpi-label">Canjes Hoy</div>
+                <div class="kpi-value">{{ redemptions_today }}</div>
+                <div class="opacity-50" style="font-size: 0.6rem;">Premios entregados</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- WORKER SPECIFIC STATS (Only for Staff) -->
+        {% if not user.is_owner %}
+        {% if user.has_feature_stamps %}
+        <div class="col-6 col-md-2">
+            <div class="kpi-card border-primary-subtle shadow-sm">
+                <div class="kpi-icon" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                    <i class="fas fa-stamp"></i>
+                </div>
+                <div class="kpi-label">Mis Sellos Hoy</div>
+                <div class="kpi-value">{{ worker_stats.my_stamps_today }}</div>
+                <div class="opacity-50" style="font-size: 0.6rem;">Otorgados por ti</div>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if user.has_feature_points %}
+        <div class="col-6 col-md-2">
+            <div class="kpi-card border-warning-subtle shadow-sm">
+                <div class="kpi-icon" style="background: rgba(255, 193, 7, 0.1); color: #ffc107;">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="kpi-label">Mis Puntos Hoy</div>
+                <div class="kpi-value">{{ worker_stats.my_points_today }}</div>
+                <div class="opacity-50" style="font-size: 0.6rem;">Otorgados por ti</div>
+            </div>
+        </div>
+        {% endif %}
         {% endif %}
     </div>
 
@@ -291,18 +335,10 @@
     <div class="main-grid">
         <!-- Center Column -->
         <div class="d-flex flex-column gap-4">
-            <!-- Growth Chart -->
-            <div class="content-card">
-                <div class="card-title-dash">
-                    <span><i class="fas fa-chart-line text-primary me-2"></i> Crecimiento de Clientes</span>
-                </div>
-                <div style="height: 250px;">
-                    <canvas id="growthChart"></canvas>
-                </div>
-            </div>
 
             {% if user.has_feature_points or user.has_feature_stamps %}
-            <!-- FIDELITY ACTIVITY CHART -->
+            <!-- FIDELITY ACTIVITY CHART (Hide for worker if distinct) -->
+            {% if user.is_owner %}
             <div class="content-card">
                 <div class="card-title-dash">
                     <span><i class="fas fa-chart-bar text-success me-2"></i> Actividad de Fidelización</span>
@@ -311,6 +347,7 @@
                     <canvas id="activityChart"></canvas>
                 </div>
             </div>
+            {% endif %}
             {% endif %}
 
             <!-- Recent Activity Table -->
@@ -324,6 +361,7 @@
                             <tr class="text-muted small" style="border-bottom: 1px solid #f1f5f9;">
                                 <th class="pb-3 fw-bold">CLIENTE</th>
                                 <th class="pb-3 fw-bold">ACCIÓN</th>
+                                <th class="pb-3 fw-bold">STAFF</th>
                                 <th class="pb-3 text-end fw-bold">TIEMPO</th>
                             </tr>
                         </thead>
@@ -333,19 +371,36 @@
                                 <td class="py-3">
                                     <div class="d-flex align-items-center">
                                         <div class="ranking-avatar" style="background: #e2e8f0; color: #475569;">
-                                            {{ txn.customer.first_name|first }}
+                                            {{ txn.customer_initial }}
                                         </div>
-                                        <div class="fw-bold small">{{ txn.customer.full_name }}</div>
+                                        <a href="{% url 'customers:customer_detail' txn.customer_id %}" class="fw-bold small text-decoration-none text-dark">{{ txn.customer_name }}</a>
                                     </div>
                                 </td>
                                 <td>
-                                    {% if txn.transaction_type == 'EARN' %}
-                                    <span class="badge bg-success-subtle text-success py-2 px-3 rounded-pill fw-bold" style="font-size: 0.65rem;">Ganó {{ txn.points }} pts</span>
+                                    {% if txn.is_earn %}
+                                    <span class="badge bg-success-subtle text-success py-2 px-3 rounded-pill fw-bold" style="font-size: 0.65rem;">
+                                        {% if txn.type == 'stamps' %}<i class="fas fa-ticket-alt me-1"></i>{% else %}<i class="fas fa-coins me-1"></i>{% endif %}
+                                        {{ txn.action_text }}
+                                    </span>
                                     {% else %}
-                                    <span class="badge bg-danger-subtle text-danger py-2 px-3 rounded-pill fw-bold" style="font-size: 0.65rem;">Canjeó {{ txn.points }} pts</span>
+                                    <span class="badge bg-danger-subtle text-danger py-2 px-3 rounded-pill fw-bold" style="font-size: 0.65rem;">
+                                        {% if txn.type == 'stamps' %}<i class="fas fa-ticket-alt me-1"></i>{% else %}<i class="fas fa-coins me-1"></i>{% endif %}
+                                        {{ txn.action_text }}
+                                    </span>
                                     {% endif %}
+                                    <div class="small text-muted mt-1 ms-1" style="font-size: 0.65rem;">{{ txn.details|truncatechars:30 }}</div>
                                 </td>
-                                <td class="text-end text-muted small">{{ txn.created_at|timesince }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="ranking-avatar small" style="width: 24px; height: 24px; font-size: 0.6rem; background: #f1f5f9; color: #64748b;">
+                                            {{ txn.staff_initial }}
+                                        </div>
+                                        <div class="ms-2">
+                                            <div class="small fw-bold" style="font-size: 0.7rem;">{{ txn.staff_name|truncatechars:15 }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end text-muted small">{{ txn.created_at|date:"d/m/Y H:i" }}</td>
                             </tr>
                             {% empty %}
                             <tr>
@@ -361,29 +416,34 @@
         <!-- Right Sidebar -->
         <div class="d-flex flex-column gap-4">
             <!-- Quick Actions Shortcuts -->
-            <div class="content-card p-4 bg-dark text-white border-0 shadow-lg shadow-primary-subtle" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
-                <h6 class="fw-bold mb-4 d-flex align-items-center"><i class="fas fa-bolt text-warning me-2"></i> Atajos Rápidos</h6>
+            <div class="content-card p-4 bg-white shadow-sm border">
+                <h6 class="fw-bold mb-4 d-flex align-items-center text-dark"><i class="fas fa-bolt text-warning me-2"></i> Atajos Rápidos</h6>
                 <div class="d-grid gap-3">
-                    <a href="{% url 'stamps:qr_scanner' %}" class="shortcut-btn bg-indigo-600 shadow-sm fw-bold">
+                    <a href="{% url 'stamps:qr_scanner' %}" class="shortcut-btn bg-indigo-600 shadow-sm fw-bold text-white">
                         <i class="fas fa-camera d-block mb-2 fa-lg"></i> ESCANEAR QR
                     </a>
                     <div class="row g-2">
-                        <div class="col-6">
-                            <a href="{% url 'stamps:card_list' %}" class="btn btn-outline-light w-100 py-3 border-secondary rounded-4 small">
+                        {% if user.has_feature_stamps %}
+                        <div class="{% if user.has_feature_points %}col-6{% else %}col-12{% endif %}">
+                            <a href="{% url 'stamps:card_list' %}" class="btn btn-outline-primary w-100 py-3 rounded-4 small border-2 fw-bold">
                                 <i class="fas fa-ticket-alt d-block mb-1"></i> Sellos
                             </a>
                         </div>
+                        {% endif %}
+                        
+                        {% if user.has_feature_points %}
                         <div class="col-6">
-                            <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-outline-light w-100 py-3 border-secondary rounded-4 small">
+                            <a href="{% url 'loyalty:transaction_list' %}" class="btn btn-outline-warning w-100 py-3 rounded-4 small border-2 fw-bold text-dark">
                                 <i class="fas fa-coins d-block mb-1"></i> Puntos
                             </a>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Plan Status Usage -->
-            {% if usage_limits %}
+            <!-- Plan Status Usage (Only for Owner) -->
+            {% if usage_limits and user.is_owner %}
             <div class="content-card">
                 <h6 class="card-title-dash mb-3"><i class="fas fa-crown text-warning me-2"></i> Estado del Plan</h6>
                 <div class="mb-3">
@@ -441,13 +501,15 @@
             </div>
 
             {% if user.has_feature_points or user.has_feature_stamps %}
-            <!-- Popular Promotions Pie -->
+            <!-- Popular Promotions Pie (Only Owner) -->
+            {% if user.is_owner %}
             <div class="content-card">
                 <h6 class="card-title-dash">🎨 Distribución</h6>
                 <div style="height: 200px;">
                     <canvas id="promoChart"></canvas>
                 </div>
             </div>
+            {% endif %}
             {% endif %}
         </div>
     </div>
@@ -569,7 +631,6 @@
         fetch("{% url 'core:dashboard_stats_api' %}")
             .then(res => res.json())
             .then(data => {
-                renderGrowthChart(data.customer_growth);
                 renderPromoChart(data.promo_stats);
                 renderActivityChart(data.stamp_activity);
             });
@@ -610,46 +671,6 @@
         });
     }
 
-    function renderGrowthChart(stats) {
-        const canvas = document.getElementById('growthChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, 0, 300);
-        grad.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
-        grad.addColorStop(1, 'rgba(99, 102, 241, 0)');
-
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: stats.map(s => s.date),
-                datasets: [{
-                    label: 'Registros',
-                    data: stats.map(s => s.count),
-                    borderColor: '#6366f1',
-                    borderWidth: 3,
-                    backgroundColor: grad,
-                    fill: true,
-                    tension: 0.5,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#6366f1'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { 
-                        beginAtZero: true, 
-                        grid: { borderDash: [5, 5] },
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-    }
 
     function renderPromoChart(stats) {
         const canvas = document.getElementById('promoChart');

@@ -38,6 +38,8 @@ def qr_request_stamp(request, slug):
         
         if not phone:
             messages.error(request, "El número de teléfono es obligatorio.")
+        elif not first_name:
+            messages.error(request, "El nombre es obligatorio.")
         else:
             # Buscar o crear cliente
             customer, created = Customer.objects.get_or_create(
@@ -362,10 +364,22 @@ def assign_stamps(request):
                     send_email_notification(config, customer.email, "Nuevos Sellos Recibidos 💈", msg)
 
             messages.success(request, f"Se agregaron {quantity} sellos.")
-            return redirect(reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty={quantity}")
+            
+            # Preservar next
+            next_url = request.POST.get('next')
+            redirect_url = reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty={quantity}"
+            if next_url:
+                redirect_url += f"&next={urllib.parse.quote(next_url)}"
+                
+            return redirect(redirect_url)
     else:
         form = StampAssignmentForm(tenant=request.tenant)
-    return render(request, 'stamps/assign_stamps.html', {'form': form, 'title': 'Agregar Sellos'})
+        
+    return render(request, 'stamps/assign_stamps.html', {
+        'form': form, 
+        'title': 'Agregar Sellos',
+        'next_url': request.GET.get('next')
+    })
 
 @login_required
 def card_list(request):
@@ -571,11 +585,19 @@ def add_stamp_customer(request, customer_id):
             if quantity == 2:
                 msg = f"⚡ ¡Sello DOBLE aplicado! ({quantity} sellos añadidos)."
             messages.success(request, msg)
-            return redirect(reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty={quantity}")
+            
+            # Preservar el parámetro 'next'
+            next_url = request.POST.get('next')
+            redirect_url = reverse('stamps:assignment_success', kwargs={'card_id': card.pk}) + f"?qty={quantity}"
+            if next_url:
+                redirect_url += f"&next={urllib.parse.quote(next_url)}"
+                
+            return redirect(redirect_url)
 
     # GET: Mostrar pantalla de confirmación (útil para escaneo QR)
     customer = get_object_or_404(Customer, id=customer_id, organization=request.tenant)
     promo_id = request.GET.get('promotion_id')
+    next_url = request.GET.get('next')
     
     if promo_id:
         active_promo = get_object_or_404(StampPromotion, id=promo_id, organization=request.tenant, is_active=True)
@@ -584,7 +606,8 @@ def add_stamp_customer(request, customer_id):
     
     return render(request, 'stamps/confirm_add_stamp.html', {
         'customer': customer,
-        'active_promo': active_promo
+        'active_promo': active_promo,
+        'next_url': next_url
     })
 
 @login_required
@@ -815,6 +838,7 @@ def assignment_success(request, card_id):
     """Página de éxito tras asignar sellos con opciones de compartir"""
     card = get_object_or_404(StampCard, pk=card_id, organization=request.tenant)
     added_quantity = request.GET.get('qty', 1)
+    next_url = request.GET.get('next')
     
     # Preparar mensaje de WhatsApp
     clean_phone = ''.join(filter(str.isdigit, str(card.customer.phone)))
@@ -838,6 +862,7 @@ def assignment_success(request, card_id):
         'added_quantity': added_quantity,
         'clean_phone': clean_phone,
         'wa_message': msg,
-        'title': '¡Sello Asignado!'
+        'title': '¡Sello Asignado!',
+        'next_url': next_url
     }
     return render(request, 'stamps/assignment_success.html', context)

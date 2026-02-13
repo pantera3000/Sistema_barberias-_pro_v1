@@ -1,0 +1,139 @@
+<!-- Modal WhatsApp Global -->
+<div class="modal fade" id="waModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 24px;">
+            <div class="modal-header bg-success bg-opacity-10 border-0 p-4">
+                <div class="d-flex align-items-center">
+                    <div class="bg-success text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center border border-white border-2 shadow-sm" style="width: 55px; height: 55px;">
+                        <i class="fab fa-whatsapp fs-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark" id="waModalTitleName">Nombre del Cliente</h4>
+                        <div class="d-flex align-items-center text-success small fw-bold">
+                            <i class="fas fa-phone-alt me-2" style="font-size: 0.7rem;"></i>
+                            <span id="waModalTitlePhone">000 000 000</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="row g-0">
+                    <!-- Columna Izquierda: Plantillas -->
+                    <div class="col-md-5 border-end bg-light bg-opacity-50">
+                        <div class="p-4">
+                            <h6 class="fw-bold text-muted small text-uppercase mb-3"><i class="fas fa-list me-2"></i>Plantillas</h6>
+                            <div class="list-group list-group-flush rounded-4 overflow-hidden border shadow-sm bg-white" style="max-height: 450px; overflow-y: auto;">
+                                {% if request.tenant.slug %}
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0 border-bottom" 
+                                        data-template-name="Bienvenida"
+                                        data-message="{% filter urlencode %}¡Hola {nombre}! 👋 Te saludamos de *{{ request.tenant.name|default:'tu barbería de confianza' }}*. 💈
+                                        
+Tu llave de acceso está lista. Pulsa aquí para entrar:
+
+🔗 LINK PANEL PREMIUM:
+{{ request.scheme }}://{{ request.get_host }}{% url 'customers:customer_login' request.tenant.slug %}
+
+🔐 TUS CREDENCIALES:
+- Usuario: {telefono}
+- Contraseña: {dni}
+
+📱 CONSULTA RÁPIDA (Sin login):
+{{ request.scheme }}://{{ request.get_host }}{% url 'stamps:public_lookup' request.tenant.slug %}
+
+¡Vuelve pronto!{% endfilter %}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1 fw-bold small text-primary">BIENVENIDA</h6>
+                                        <i class="fas fa-star text-warning small"></i>
+                                    </div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Acceso Premium y links.</small>
+                                </button>
+                                {% endif %}
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0 border-bottom" 
+                                        data-template-name="Puntos"
+                                        data-message="{% filter urlencode %}¡Hola {nombre}! 👋 Te saludamos de *{{ request.tenant.name|default:'la barbería' }}*.
+
+Solo queríamos recordarte que tienes *{puntos} puntos* acumulados en tu cuenta. 🌟
+
+¡Te falta muy poco para tu próximo premio! ✨ Te esperamos pronto. 💈{% endfilter %}">
+                                    <h6 class="mb-1 fw-bold small">Puntos Acumulados</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Recordatorio de puntos.</small>
+                                </button>
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0 border-bottom"
+                                        data-template-name="Premio"
+                                        data-message="{% filter urlencode %}¡Buenas noticias, {nombre}! 🎁✨ Te escribimos de *{{ request.tenant.name|default:'la barbería' }}*.
+
+¡Ya tienes un premio listo para canjear en tu tarjeta de sellos! 🎊
+
+Pásate hoy mismo por el local para disfrutar de tu recompensa. ¡Te lo has ganado! 💈👑{% endfilter %}">
+                                    <h6 class="mb-1 fw-bold small">Premio Listo</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Para clientes con canjes.</small>
+                                </button>
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0 border-bottom"
+                                        data-template-name="Re-engagement"
+                                        data-message="{% filter urlencode %}¡Hola {nombre}! 👋 Te extrañamos en *{{ request.tenant.name|default:'la barbería' }}*. 💈✂️
+
+Hace tiempo que no nos visitas y tu cabello lo sabe. 😉 ¿Qué tal si agendamos un espacio para ti?
+
+¡Vuelve a lucir tu mejor versión con nosotros! 👊✨{% endfilter %}">
+                                    <h6 class="mb-1 fw-bold small">Re-engagement</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Para clientes ausentes.</small>
+                                </button>
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0 border-bottom"
+                                        data-template-name="Cumpleaños"
+                                        data-message="{% filter urlencode %}¡Feliz cumpleaños, {nombre}! 🎂🥳 De parte de todo el equipo de *{{ request.tenant.name|default:'la barbería' }}*.
+
+Te deseamos un día espectacular. ✨ Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándote. 🎁 
+
+¡Ven a celebrar con nosotros! ✂️💈{% endfilter %}">
+                                    <h6 class="mb-1 fw-bold small">Cumpleaños</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Felicita al cliente.</small>
+                                </button>
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0 border-bottom"
+                                        data-template-name="Promoción"
+                                        data-message="{% filter urlencode %}¡Hola {nombre}! 👋 Tenemos una *nueva promoción* en *{{ request.tenant.name|default:'la barbería' }}* que te va a encantar. 💎✨
+
+Pregunta por ella en tu próxima visita y aprovecha los beneficios. ¡No te la pierdas! 💈🚀{% endfilter %}">
+                                    <h6 class="mb-1 fw-bold small">Promoción</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Novedades y ofertas.</small>
+                                </button>
+                                <button type="button" class="list-group-item list-group-item-action py-3 wa-template-btn border-0"
+                                        data-template-name="Agradecimiento"
+                                        data-message="{% filter urlencode %}¡Hola {nombre}! 👋 ¡Muchas gracias por tu visita de hoy a *{{ request.tenant.name|default:'la barbería' }}*! ✨💈
+
+Esperamos que te haya gustado el servicio. Nos encantaría verte pronto de nuevo por aquí.
+
+¡Que tengas un excelente día! 👊⚡{% endfilter %}">
+                                    <h6 class="mb-1 fw-bold small">Agradecimiento</h6>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Post-servicio inmediato.</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Editor -->
+                    <div class="col-md-7">
+                        <div class="p-4 h-100 d-flex flex-column">
+                            <h6 class="fw-bold text-muted small text-uppercase mb-3"><i class="fas fa-edit me-2"></i>Editor de Mensaje</h6>
+                            <div class="flex-grow-1 mb-4">
+                                <textarea id="waMessageEditor" class="form-control border-2 rounded-4 p-4 shadow-inner" 
+                                          style="min-height: 380px; resize: none; background-color: #fcfdfe;" 
+                                          placeholder="Escribe tu mensaje aquí..."></textarea>
+                            </div>
+                            <div class="mt-auto">
+                                <button type="button" id="waSendFinalBtn" class="btn btn-success btn-lg w-100 py-3 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center">
+                                    <i class="fab fa-whatsapp me-2 fs-4"></i> ENVIAR A WHATSAPP
+                                </button>
+                                <div class="text-center mt-3">
+                                    <p class="text-muted mb-0" style="font-size: 0.7rem;">
+                                        <i class="fas fa-info-circle me-1"></i> Se abrirá WhatsApp para confirmar el envío.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

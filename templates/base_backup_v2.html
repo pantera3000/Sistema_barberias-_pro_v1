@@ -182,7 +182,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-{% block hide_nav %}{% if user.is_authenticated %}
+{% if user.is_authenticated %}
     {% if has_birthday_today %}
     <div class="birthday-banner py-2 text-white text-center shadow-sm" style="background: linear-gradient(90deg, #ff0080, #7928ca); z-index: 1050; position: relative;">
         <div class="container-fluid px-2">
@@ -275,11 +275,11 @@
             <span>Menú</span>
         </a>
     </nav>
-{% endif %}{% endblock %}
+{% endif %}
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar (Desktop + Offcanvas) -->
-        {% block hide_sidebar %}{% if user.is_authenticated %}
+        {% if user.is_authenticated %}
         <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block sidebar offcanvas-md offcanvas-start border-end pt-3" tabindex="-1" aria-labelledby="sidebarLabel">
             <div class="offcanvas-header d-md-none border-bottom mb-3">
                 <h5 class="offcanvas-title text-primary fw-bold" id="sidebarLabel"><i class="fas fa-cut"></i> Loyalty System</h5>
@@ -324,8 +324,8 @@
                     </div>
                 </div>
 
-                <!-- Plan Usage (Only Owners) -->
-                {% if tenant_org and user.is_owner %}
+                <!-- Plan Usage -->
+                {% if tenant_org and not user.is_superuser %}
                 <div class="px-3 mb-4 d-none d-md-block">
                     <div class="p-3 rounded-4 bg-dark text-white shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%);">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -465,26 +465,9 @@
                     {% endif %}
                     {% if user.has_feature_customers %}
                     <li class="nav-item">
-                        <a class="nav-link d-flex justify-content-between align-items-center {% if 'customers' in request.path %}active{% endif %}" 
-                           data-bs-toggle="collapse" href="#customersSubmenu" role="button" 
-                           aria-expanded="{% if 'customers' in request.path %}true{% else %}false{% endif %}">
-                            <span><i class="fas fa-users me-2"></i> Clientes</span>
-                            <i class="fas fa-chevron-down small opacity-50"></i>
+                        <a class="nav-link {% if 'customers' in request.path %}active{% endif %}" href="{% url 'customers:customer_list' %}">
+                            <i class="fas fa-users me-2"></i> Clientes
                         </a>
-                        <div class="collapse {% if 'customers' in request.path %}show{% endif %}" id="customersSubmenu">
-                            <ul class="nav flex-column ms-4 border-start border-2">
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'customer_list' %}text-primary fw-bold{% endif %}" href="{% url 'customers:customer_list' %}">
-                                        <i class="fas fa-list me-1"></i> Listado
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link py-1 small {% if request.resolver_match.url_name == 'birthday_list' %}text-primary fw-bold{% endif %}" href="{% url 'customers:birthday_list' %}">
-                                        <i class="fas fa-birthday-cake me-1"></i> Calendario 🎂
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
                     </li>
                     {% endif %}
                     {% if user.has_feature_services and user.is_owner or user.is_superuser %}
@@ -581,7 +564,6 @@
             </div>
         </nav>
         {% endif %}
-        {% endblock %}
 
         <!-- Main Content -->
         <main class="{% if user.is_authenticated %}col-md-9 ms-sm-auto col-lg-10 px-md-4{% else %}col-12{% endif %} py-4">
@@ -662,12 +644,19 @@
                         
                         <div class="actions">
                             {% if customer.phone %}
-                            <button type="button" 
-                                    onclick="openGlobalWaModal('{{ customer.phone|cut:' ' }}', '{{ customer.first_name|escapejs }}', { templateName: 'Cumpleaños' })"
-                                    class="btn btn-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center shadow-sm hover-lift"
-                                    style="font-size: 0.8rem; background-color: #25d366; border-color: #25d366;">
+                            <a href="https://wa.me/{{ customer.phone|cut:' ' }}?text={% filter urlencode %}¡Feliz cumpleaños, {{ customer.first_name }}! 🎂🥳 
+
+De parte de todo el equipo de {{ request.tenant.name|default:'la barbería' }}, te deseamos un día espectacular. ✨ 
+
+Como regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándote. 🎁 
+
+¡Ven a celebrar con nosotros y luce impecable en tu día! ✂️💈{% endfilter %}" 
+                               target="_blank" 
+                               class="btn btn-success rounded-pill px-3 py-2 fw-bold d-flex align-items-center shadow-sm hover-lift"
+                               onclick="registerBirthdayLog('{{ customer.id }}')"
+                               style="font-size: 0.8rem; background-color: #25d366; border-color: #25d366;">
                                 <i class="fab fa-whatsapp me-2"></i> Felicitar
-                            </button>
+                            </a>
                             {% else %}
                             <span class="badge bg-light text-muted fw-normal p-2 px-3 border rounded-pill" style="font-size: 0.7rem;">Sin contacto</span>
                             {% endif %}
@@ -1194,10 +1183,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-    {% block modals %}{% endblock %}
-
-    <!-- WhatsApp Global Component -->
-    {% include 'partials/wa_modal.html' %}
-    {% include 'partials/wa_modal_js.html' %}
 </body>
 </html>

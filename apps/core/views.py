@@ -60,15 +60,73 @@ def tenant_dashboard(request):
         transaction_type='EARN'
     ).aggregate(total=Sum('points'))['total'] or 0
     
-    # 3. Tarjetas de Sellos Activas
     active_stamp_cards = StampCard.objects.filter(
         organization=tenant, 
         is_redeemed=False,
         is_completed=False
     ).count()
+
+    # --- Worker Specific Stats (For My Activity) ---
+    worker_stats = {}
+    if not request.user.is_owner:
+        worker_stats['my_points_today'] = PointTransaction.objects.filter(
+            organization=tenant,
+            created_at__date=today,
+            performed_by=request.user,
+            transaction_type='EARN'
+        ).aggregate(total=Sum('points'))['total'] or 0
+
+        worker_stats['my_stamps_today'] = StampTransaction.objects.filter(
+            organization=tenant,
+            created_at__date=today,
+            performed_by=request.user,
+            action='ADD'
+        ).count()
+        
+        worker_stats['my_actions_today'] = worker_stats['my_stamps_today'] + (1 if worker_stats['my_points_today'] > 0 else 0) # Rough activity count
     
-    # 4. Actividad Reciente (Últimas 5 transacciones de puntos)
-    recent_activity = PointTransaction.objects.filter(organization=tenant).select_related('customer', 'performed_by').order_by('-created_at')[:5]
+    # 4. Actividad Reciente (Unificada: Puntos y Sellos)
+    point_recent = PointTransaction.objects.filter(organization=tenant).select_related('customer', 'performed_by').order_by('-created_at')[:5]
+    stamp_recent = StampTransaction.objects.filter(organization=tenant).select_related('card__customer', 'performed_by').order_by('-created_at')[:5]
+    
+    recent_activity = []
+    
+    for pt in point_recent:
+        recent_activity.append({
+            'customer_name': pt.customer.full_name,
+            'customer_initial': pt.customer.first_name[0] if pt.customer.first_name else 'C',
+            'customer_id': pt.customer.id,
+            'action_text': f"Ganó {pt.points} pts" if pt.transaction_type == 'EARN' else f"Canjeó {pt.points} pts",
+            'details': pt.description or "Transacción de puntos",
+            'is_earn': pt.transaction_type == 'EARN',
+            'created_at': pt.created_at,
+            'type': 'points',
+            'staff_name': pt.performed_by.get_full_name() or pt.performed_by.username,
+            'staff_initial': pt.performed_by.first_name[0] if pt.performed_by.first_name else pt.performed_by.username[0],
+            'staff_role': pt.performed_by.role_display
+        })
+        
+    for st in stamp_recent:
+        action_desc = "Sello +" if st.action == 'ADD' else "Canje -"
+        details_text = st.card.promotion.name if st.card.promotion else "Tarjeta de Sellos"
+        
+        recent_activity.append({
+            'customer_name': st.card.customer.full_name,
+            'customer_initial': st.card.customer.first_name[0] if st.card.customer.first_name else 'C',
+            'customer_id': st.card.customer.id,
+            'action_text': f"{action_desc} ({st.quantity})",
+            'details': details_text,
+            'is_earn': st.action == 'ADD',
+            'created_at': st.created_at,
+            'type': 'stamps',
+            'staff_name': st.performed_by.get_full_name() or st.performed_by.username,
+            'staff_initial': st.performed_by.first_name[0] if st.performed_by.first_name else st.performed_by.username[0],
+            'staff_role': st.performed_by.role_display
+        })
+        
+    # Ordenar por fecha y tomar los 10 más recientes
+    recent_activity.sort(key=lambda x: x['created_at'], reverse=True)
+    recent_activity = recent_activity[:8]
 
     # --- Métricas Avanzadas 2.0 ---
     
@@ -127,16 +185,33 @@ def tenant_dashboard(request):
         if show_limit:
             usage_limits.append(limit)
     
+    # 9. Canjes Hoy (Puntos + Sellos)
+    point_redeems_today = PointTransaction.objects.filter(
+        organization=tenant,
+        created_at__date=today,
+        transaction_type='REDEEM'
+    ).count()
+    
+    stamp_redeems_today = StampTransaction.objects.filter(
+        organization=tenant,
+        created_at__date=today,
+        action='REDEEM'
+    ).count()
+    
+    redemptions_today = point_redeems_today + stamp_redeems_today
+    
     context = {
         'total_customers': total_customers,
         'new_customers_today': new_customers_today,
         'points_today': points_today,
         'active_stamp_cards': active_stamp_cards,
         'recent_activity': recent_activity,
-        'staff_ranking': staff_ranking,
+        'redemptions_today': redemptions_today,
         'retention_rate': retention_rate,
         'estimated_revenue': estimated_revenue,
+        'staff_ranking': staff_ranking,
         'usage_limits': usage_limits,
+        'worker_stats': worker_stats, # Added for worker dashboard
         'title': f"Dashboard - {tenant.name}"
     }
     return render(request, 'core/dashboard.html', context)
@@ -231,15 +306,6 @@ def dashboard_stats_api(request):
     tenant = getattr(request, 'tenant', None) or request.user.organization
     last_30_days = timezone.localtime().date() - timedelta(days=30)
     
-    # 1. Crecimiento de Clientes (Línea)
-    customer_growth = Customer.objects.filter(
-        organization=tenant,
-        created_at__date__gte=last_30_days
-    ).annotate(
-        date=TruncDate('created_at')
-    ).values('date').annotate(
-        count=Count('id')
-    ).order_by('date')
     
     # 2. Actividad de Sellos (Barras)
     stamp_activity = StampTransaction.objects.filter(
@@ -259,7 +325,6 @@ def dashboard_stats_api(request):
     ).values('name', 'card_count').order_by('-card_count')[:5]
     
     return JsonResponse({
-        'customer_growth': list(customer_growth),
         'stamp_activity': list(stamp_activity),
         'promo_stats': list(promo_stats)
     })

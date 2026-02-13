@@ -3,6 +3,92 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Base Styles */
+    .stamp-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        background: #fdfdfd;
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px dashed #dee2e6;
+    }
+    .stamp-slot {
+        aspect-ratio: 1/1;
+        border: 2px solid #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .stamp-slot.active {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+    }
+    .slot-number {
+        font-size: 1.2rem;
+        color: #adb5bd;
+        font-weight: 700;
+    }
+    .border-dashed {
+        border-style: dashed !important;
+    }
+    .card {
+        transition: transform 0.2s;
+        border: none;
+        border-radius: 15px;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+    }
+    
+    #customerResults {
+        position: absolute;
+        width: 100%;
+        z-index: 2000;
+        background: white;
+    }
+    .list-group-item-action {
+        cursor: pointer;
+    }
+    .list-group-item-action:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Radical Space Optimization for Stamp Management */
+    @media (max-width: 767.98px) {
+        /* General Row spacing */
+        .row.mb-3, .row.mb-4 { margin-bottom: 0.5rem !important; }
+
+        /* Stamp Grid Items */
+        .stamp-grid { padding: 8px !important; gap: 6px !important; border-width: 1px !important; }
+        .stamp-slot { border-width: 1px !important; }
+        /* Removed font-size reductions to keep text readable */
+        
+        .card-header.pt-4 { padding-top: 0.75rem !important; padding-bottom: 0 !important; }
+        .card-body.px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; padding-bottom: 0.75rem !important; }
+        
+        .alert.py-2 { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 header-compact">
     <h1 class="h4 mb-0 fw-bold">{{ title }}</h1>
@@ -104,6 +190,7 @@
             <div class="modal-body p-4">
                 <form action="{% url 'stamps:assign_stamps' %}" method="post" id="newCardForm">
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
                     <div class="mb-4">
                         <label class="form-label fw-bold">Buscar Cliente</label>
                         <div class="position-relative">
@@ -172,112 +259,13 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Base Styles */
-    .stamp-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 10px;
-        background: #fdfdfd;
-        padding: 15px;
-        border-radius: 12px;
-        border: 2px dashed #dee2e6;
-    }
-    .stamp-slot {
-        aspect-ratio: 1/1;
-        border: 2px solid #e9ecef;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #fff;
-        transition: all 0.3s ease;
-        position: relative;
-    }
-    .stamp-slot.active {
-        background: #0d6efd;
-        border-color: #0d6efd;
-        color: white;
-        transform: scale(1.1);
-        box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
-    }
-    .slot-number {
-        font-size: 0.8rem;
-        color: #adb5bd;
-        font-weight: 600;
-    }
-    .border-dashed {
-        border-style: dashed !important;
-    }
-    .card {
-        transition: transform 0.2s;
-        border: none;
-        border-radius: 15px;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-    }
-    .animate-pulse {
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4); }
-        70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-    }
-    
-    #customerResults {
-        position: absolute;
-        width: 100%;
-        z-index: 2000;
-        background: white;
-    }
-    .list-group-item-action {
-        cursor: pointer;
-    }
-    .list-group-item-action:hover {
-        background-color: #f8f9fa;
-    }
-
-    /* Radical Space Optimization for Stamp Management */
-    @media (max-width: 767.98px) {
-        .header-compact h1 { font-size: 1rem !important; }
-        .header-compact .btn { padding: 4px 10px !important; font-size: 0.65rem !important; }
-        
-        /* Stats Compact */
-        .kpi-mini-icon { font-size: 0.8rem; height: 20px; display: flex; align-items: center; justify-content: center; }
-        .kpi-mini-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0; margin-bottom: 0; opacity: 0.7; }
-        .kpi-mini-value { font-size: 0.9rem; line-height: 1; margin-top: 2px; }
-        
-        /* Search Bar Compact */
-        .card-body.p-2 { padding: 0.25rem !important; }
-        #searchInput { font-size: 0.75rem !important; }
-        #searchBtn { font-size: 0.75rem !important; padding: 2px 10px !important; }
-
-        /* General Row spacing */
-        .row.mb-3, .row.mb-4 { margin-bottom: 0.5rem !important; }
-
-        /* Stamp Grid Items */
-        .stamp-grid { padding: 8px !important; gap: 6px !important; border-width: 1px !important; }
-        .stamp-slot { border-width: 1px !important; }
-        .slot-number { font-size: 0.6rem !important; }
-        .stamp-slot i { font-size: 0.7rem !important; }
-        
-        .card-header.pt-4 { padding-top: 0.75rem !important; padding-bottom: 0 !important; }
-        .card-body.px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; padding-bottom: 0.75rem !important; }
-        
-        .card-header h5 { font-size: 0.9rem !important; }
-        .badge { font-size: 0.55rem !important; padding: 2px 6px !important; }
-        
-        .alert.py-2 { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
-        .alert .fw-bold { font-size: 0.75rem !important; }
-    }
-</style>
+{% block modals %}
+    {% include 'stamps/partials/stamp_modals.html' %}
 {% endblock %}
 
 {% block extra_js %}
-<script>
+    {% include 'stamps/partials/stamp_modals_js.html' %}
+    <script>
     const searchInput = document.getElementById('customerSearchInput');
     const resultsDiv = document.getElementById('customerResults');
     const selectedInfo = document.getElementById('selectedCustomerInfo');
@@ -290,72 +278,74 @@
 
     let debounceTimer;
 
-    searchInput.addEventListener('input', function() {
-        clearTimeout(debounceTimer);
-        const q = this.value;
-        
-        if (q.length < 1) {
-            resultsDiv.classList.add('d-none');
-            return;
-        }
-
-        debounceTimer = setTimeout(() => {
-            resultsDiv.innerHTML = '<div class="list-group-item text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Buscando...</div>';
-            resultsDiv.classList.remove('d-none');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const q = this.value;
             
-            fetch(`/app/customers/api/search/?q=${encodeURIComponent(q)}`)
-                .then(response => {
-                    if (!response.ok) throw new Error('Error en el servidor');
-                    return response.json();
-                })
-                .then(data => {
-                    resultsDiv.innerHTML = '';
-                    if (data.results.length > 0) {
-                        data.results.forEach(customer => {
-                            const btn = document.createElement('button');
-                            btn.type = 'button';
-                            btn.className = 'list-group-item list-group-item-action py-3';
-                            btn.innerHTML = `
-                                <div class="d-flex justify-content-between">
-                                    <span class="fw-bold">${customer.full_name}</span>
-                                    <small class="text-muted">${customer.phone}</small>
-                                </div>
-                                <small class="text-muted d-block">${customer.email}</small>
-                            `;
-                            btn.onclick = () => selectCustomer(customer);
-                            resultsDiv.appendChild(btn);
-                        });
-                        resultsDiv.classList.remove('d-none');
-                    } else {
-                        resultsDiv.innerHTML = '<div class="list-group-item text-muted">No se encontraron clientes</div>';
-                        resultsDiv.classList.remove('d-none');
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    resultsDiv.innerHTML = '<div class="list-group-item text-danger">Error al buscar. Intenta de nuevo.</div>';
-                });
-        }, 300);
-    });
+            if (q.length < 1) {
+                resultsDiv.classList.add('d-none');
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                resultsDiv.innerHTML = '<div class="list-group-item text-muted"><i class="fas fa-spinner fa-spin me-2"></i> Buscando...</div>';
+                resultsDiv.classList.remove('d-none');
+                
+                fetch(`/app/customers/api/search/?q=${encodeURIComponent(q)}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Error en el servidor');
+                        return response.json();
+                    })
+                    .then(data => {
+                        resultsDiv.innerHTML = '';
+                        if (data.results.length > 0) {
+                            data.results.forEach(customer => {
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.className = 'list-group-item list-group-item-action py-3';
+                                btn.innerHTML = `
+                                    <div class="d-flex justify-content-between">
+                                        <span class="fw-bold">${customer.full_name}</span>
+                                        <small class="text-muted">${customer.phone}</small>
+                                    </div>
+                                    <small class="text-muted d-block">${customer.email}</small>
+                                `;
+                                btn.onclick = () => selectCustomer(customer);
+                                resultsDiv.appendChild(btn);
+                            });
+                            resultsDiv.classList.remove('d-none');
+                        } else {
+                            resultsDiv.innerHTML = '<div class="list-group-item text-muted">No se encontraron clientes</div>';
+                            resultsDiv.classList.remove('d-none');
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        resultsDiv.innerHTML = '<div class="list-group-item text-danger">Error al buscar. Intenta de nuevo.</div>';
+                    });
+            }, 300);
+        });
+    }
 
     function selectCustomer(customer) {
         hiddenIdInput.value = customer.id;
         nameSpan.innerText = customer.full_name;
         phoneSmall.innerText = customer.phone;
         selectedInfo.classList.remove('d-none');
-        // searchInput.closest('.mb-4').classList.add('d-none'); // Mantenemos el buscador visible
         resultsDiv.classList.add('d-none');
         submitBtn.disabled = false;
     }
 
-    clearBtn.onclick = () => {
-        hiddenIdInput.value = '';
-        selectedInfo.classList.add('d-none');
-        // searchInput.closest('.mb-4').classList.remove('d-none');
-        searchInput.value = '';
-        submitBtn.disabled = true;
-        searchInput.focus();
-    };
+    if (clearBtn) {
+        clearBtn.onclick = () => {
+            hiddenIdInput.value = '';
+            selectedInfo.classList.add('d-none');
+            searchInput.value = '';
+            submitBtn.disabled = true;
+            searchInput.focus();
+        };
+    }
 
     function incrementStamp() {
         quantityInput.value = parseInt(quantityInput.value) + 1;
@@ -368,7 +358,7 @@
 
     // Cerrar resultados al clicar fuera
     document.addEventListener('click', function(event) {
-        if (!searchInput.contains(event.target) && !resultsDiv.contains(event.target)) {
+        if (searchInput && resultsDiv && !searchInput.contains(event.target) && !resultsDiv.contains(event.target)) {
             resultsDiv.classList.add('d-none');
         }
     });
@@ -428,44 +418,45 @@
 
     // --- Approval logic ---
     window.approvePendingQR = function(requestId, btn) {
-        if (!confirm('¿Aprobar esta solicitud de sello QR?')) return;
-        
-        const originalHtml = btn.innerHTML;
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> PROCESANDO...';
-        
-        const formData = new FormData();
-        formData.append('action', 'approve');
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        
-        fetch(`/app/stamps/api/requests/${requestId}/resolve/`, {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success' || data.status === 'ok') {
-                // Sello aprobado. Recargar la grilla para mostrar el cambio
-                if (window.performAjaxSearch) {
-                    window.performAjaxSearch();
-                } else {
-                    location.reload();
+        const action = () => {
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> PROCESANDO...';
+            
+            const formData = new FormData();
+            formData.append('action', 'approve');
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            
+            fetch(`/app/stamps/api/requests/${requestId}/resolve/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-            } else {
-                alert('Error: ' + (data.error || 'No se pudo aprobar la solicitud'));
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' || data.status === 'ok') {
+                    if (window.performAjaxSearch) {
+                        window.performAjaxSearch();
+                    } else {
+                        location.reload();
+                    }
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo aprobar la solicitud'));
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error al conectar con el servidor');
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('Error al conectar con el servidor');
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
-        });
+            });
+        };
+
+        openConfirmActionModal(null, '¿Aprobar solicitud?', 'Se sumará el sello al cliente correspondiente.', action);
     };
 
     // --- Global History Loader ---
@@ -475,7 +466,6 @@
         document.getElementById('historyModalLabel').innerText = `Historial: ${customerName}`;
         const body = document.getElementById('historyModalBody');
         
-        // Mostrar spinner mientras carga
         body.innerHTML = `
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status">
@@ -484,13 +474,11 @@
             </div>
         `;
         
-        // Manejar el modal
         const modalEl = document.getElementById('historyModal');
         if (!historyModalInstance) {
             historyModalInstance = new bootstrap.Modal(modalEl);
         }
         
-        // Solo mostrar si no está abierto
         if (!modalEl.classList.contains('show')) {
             historyModalInstance.show();
         }
@@ -505,5 +493,5 @@
                 console.error(err);
             });
     };
-</script>
+    </script>
 {% endblock %}

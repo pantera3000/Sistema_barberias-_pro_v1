@@ -1,0 +1,140 @@
+<script>
+    var globalWaCustomerData = {};
+
+    function openGlobalWaModal(phone, name, options) {
+        options = options || {};
+        console.log("Opening WA Modal for:", name, phone);
+        
+        // Guardar datos actuales
+        globalWaCustomerData = {
+            phone: phone || '',
+            name: name || 'Cliente',
+            dni: options.dni || '(tu DNI)',
+            puntos: options.puntos || '0',
+            customerId: options.customerId || null
+        };
+
+        // UI Updates with absolute safety
+        try {
+            var nameEl = document.getElementById('waModalTitleName');
+            var phoneEl = document.getElementById('waModalTitlePhone');
+            var waEditor = document.getElementById('waMessageEditor');
+
+            if (nameEl) nameEl.textContent = globalWaCustomerData.name;
+            if (phoneEl) phoneEl.textContent = globalWaCustomerData.phone;
+            if (waEditor) waEditor.value = ""; // Limpiar antes de abrir
+        } catch (e) {
+            console.error("Error updating modal UI:", e);
+        }
+
+        // Mostrar Modal
+        var modalEl = document.getElementById('waModal');
+        if (!modalEl) {
+            console.error("Modal element #waModal not found!");
+            return;
+        }
+
+        // Usar instancia existente o crear nueva
+        var waModalInstance = null;
+        if (typeof bootstrap !== 'undefined') {
+            waModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            
+            // Limpiar selecciones previas
+            var btns = document.querySelectorAll('.wa-template-btn');
+            for (var i = 0; i < btns.length; i++) {
+                btns[i].classList.remove('active');
+            }
+
+            waModalInstance.show();
+
+            // Cargar plantilla con delay
+            setTimeout(function() {
+                if (options.templateIndex !== undefined) {
+                     var btn = document.querySelectorAll('.wa-template-btn')[options.templateIndex];
+                     if (btn) btn.click();
+                } else if (options.templateName) {
+                    var allBtns = document.querySelectorAll('.wa-template-btn');
+                    for (var j = 0; j < allBtns.length; j++) {
+                        if (allBtns[j].getAttribute('data-template-name') === options.templateName) {
+                            allBtns[j].click();
+                            break;
+                        }
+                    }
+                }
+            }, 150);
+        } else {
+            console.error("Bootstrap is not defined!");
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var templateBtns = document.querySelectorAll('.wa-template-btn');
+        var waEditor = document.getElementById('waMessageEditor');
+        var waSendBtn = document.getElementById('waSendFinalBtn');
+
+        for (var k = 0; k < templateBtns.length; k++) {
+            templateBtns[k].addEventListener('click', function() {
+                var message = "";
+                var rawMessage = this.getAttribute('data-message');
+                try {
+                    message = decodeURIComponent(rawMessage.replace(/\+/g, ' '));
+                } catch (e) {
+                    message = rawMessage;
+                }
+
+                // Reemplazar placeholders
+                message = message.replace(/{nombre}/g, globalWaCustomerData.name || "Cliente");
+                message = message.replace(/{telefono}/g, globalWaCustomerData.phone || "");
+                message = message.replace(/{dni}/g, globalWaCustomerData.dni || "(tu DNI)");
+                message = message.replace(/{puntos}/g, globalWaCustomerData.puntos || "0");
+
+                if (waEditor) waEditor.value = message;
+                
+                for (var l = 0; l < templateBtns.length; l++) {
+                    templateBtns[l].classList.remove('active');
+                }
+                this.classList.add('active');
+            });
+        }
+
+        if (waSendBtn) {
+            waSendBtn.addEventListener('click', function() {
+                if (!globalWaCustomerData || !globalWaCustomerData.phone) {
+                    alert("No se ha cargado el número de teléfono del cliente. Por favor, cierra el modal y vuelve a intentarlo.");
+                    return;
+                }
+
+                var messageText = waEditor ? waEditor.value.trim() : "";
+                var activeBtn = document.querySelector('.wa-template-btn.active');
+                var templateName = activeBtn ? activeBtn.getAttribute('data-template-name') : "Personalizado";
+                
+                if (messageText === "") {
+                    alert("Por favor, selecciona una plantilla o escribe un mensaje.");
+                    return;
+                }
+
+                if (globalWaCustomerData.customerId) {
+                    fetch("/app/customers/api/" + globalWaCustomerData.customerId + "/log-whatsapp/", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: 'template_name=' + encodeURIComponent(templateName)
+                    });
+
+                    // Real-time feedback event
+                    const event = new CustomEvent('whatsapp-sent', { 
+                        detail: { customerId: globalWaCustomerData.customerId } 
+                    });
+                    document.dispatchEvent(event);
+                }
+
+                var finalMessage = encodeURIComponent(messageText);
+                var phone = globalWaCustomerData.phone.replace(/\D/g,'');
+                window.open('https://wa.me/' + phone + '?text=' + finalMessage, '_blank');
+            });
+        }
+    });
+</script>
+

@@ -1,0 +1,98 @@
+<!-- Modal de Confirmación de Sello Personalizado -->
+<div class="modal fade" id="confirmStampModal" tabindex="-1" aria-labelledby="confirmStampModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold d-flex align-items-center" id="confirmStampModalLabel">
+                    <span class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                        <i class="fas fa-stamp"></i>
+                    </span>
+                    Confirmar Sello
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-4">
+                    <div class="display-4 text-primary mb-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">¿Asignar sello a <span id="modalCustomerName" class="text-primary"></span>?</h5>
+                    <p class="text-muted">Se agregará 1 sello a la campaña: <br><strong id="modalPromoName"></strong></p>
+                </div>
+                
+                {% if request.tenant.is_double_stamp_day %}
+                <div class="alert alert-primary border-0 rounded-4 py-2 px-3 mb-4 d-flex align-items-center justify-content-center">
+                    <i class="fas fa-bolt me-2"></i>
+                    <small class="fw-bold">¡Hoy es Sello Doble! Se sumarán 2 sellos.</small>
+                </div>
+                {% endif %}
+
+                <div class="d-grid gap-2">
+                    <button type="button" id="confirmSubmitBtn" class="btn btn-primary btn-lg rounded-pill py-3 fw-bold shadow-sm">
+                        SÍ, MARCAR SELLO
+                    </button>
+                    <button type="button" class="btn btn-link text-muted fw-bold" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Canje -->
+<div class="modal fade" id="confirmRedeemModal" tabindex="-1" aria-labelledby="confirmRedeemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4 text-center">
+                <h5 class="modal-title fw-bold w-100" id="confirmRedeemModalLabel">
+                    Confirmar Canje de Premio
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-4">
+                    <div class="display-4 text-success mb-3">
+                        <i class="fas fa-gift"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">¿Entregar premio a <span id="modalRedeemCustomer" class="text-success"></span>?</h5>
+                    <p class="text-muted">Premio: <strong id="modalRedeemPromo"></strong></p>
+                </div>
+                <div class="alert alert-success border-0 rounded-4 py-2 px-3 mb-4">
+                    <small>Este proceso completará el ciclo de la tarjeta actual.</small>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" id="confirmRedeemBtn" class="btn btn-success btn-lg rounded-pill py-3 fw-bold shadow-sm">
+                        SÍ, CANJEAR AHORA
+                    </button>
+                    <button type="button" class="btn btn-link text-muted fw-bold" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Genérico de Acción Crítica (para Deshacer/Borrar) -->
+<div class="modal fade" id="confirmActionModal" tabindex="-1" aria-labelledby="confirmActionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning display-4"></i>
+                </div>
+                <h5 class="fw-bold mb-3" id="modalActionTitle">¿Estás seguro?</h5>
+                <p class="text-muted small mb-4" id="modalActionBody">Esta acción no se puede deshacer de forma sencilla.</p>
+                <div class="d-grid gap-2">
+                    <button type="button" id="confirmGenericBtn" class="btn btn-danger rounded-pill py-2 fw-bold">
+                        SÍ, PROCEDER
+                    </button>
+                    <button type="button" class="btn btn-light rounded-pill py-2 fw-bold" data-bs-dismiss="modal">
+                        No, cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

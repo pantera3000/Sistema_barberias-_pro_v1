@@ -12,7 +12,7 @@ from apps.loyalty.models import PointTransaction
 from apps.audit.utils import log_action
 from django.utils import timezone
 from collections import Counter
-
+from datetime import date, timedelta
 from apps.core.models import Organization
 
 @login_required
@@ -159,8 +159,11 @@ def customer_detail(request, pk):
     # Dueño ve todo, trabajador ve filtrado
     activity_logs = customer.audit_logs.all().select_related('user')
     if not request.user.is_owner:
-        # Filtrar solo acciones operativas para trabajadores
-        activity_logs = activity_logs.filter(action__in=['STAMP_ADD', 'STAMP_REDEEM', 'POINTS_ADD', 'POINTS_REDEEM', 'WA_SENT'])
+        # Filtrar solo acciones operativas para trabajadores (ahora incluye aprobaciones y ediciones)
+        activity_logs = activity_logs.filter(action__in=[
+            'STAMP_ADD', 'STAMP_REDEEM', 'POINTS_ADD', 'POINTS_REDEEM', 'WA_SENT',
+            'STAMP_REQUEST_APPROVED', 'CREATE', 'UPDATE', 'CUSTOMER_NUDGE_UPDATE', 'DELETE'
+        ])
 
     # --- Solicitudes QR Pendientes ---
     pending_requests = StampRequest.objects.filter(customer=customer, status='PENDING').select_related('promotion')
@@ -320,9 +323,113 @@ def customer_login(request, slug):
         'organization': organization,
         'title': 'Acceso Clientes'
     })
-
+@login_required
 def customer_logout(request):
     """Cerrar sesión de cliente (limpiar sesión)"""
     request.session.flush()
-    messages.info(request, "Has cerrado tu sesión correctamente.")
-    return redirect('core:home')
+    return redirect('customers:customer_login', slug=request.user.organization.slug)
+
+@login_required
+def birthday_list(request):
+    """
+    Vista detallada de cumpleaños: Hoy, Próximos y Recientes.
+    """
+    tenant = getattr(request, 'tenant', None) or request.user.organization
+    
+    # Obtener fecha actual en la zona del tenant
+    today = timezone.localtime().date()
+    if tenant and hasattr(tenant, 'timezone') and tenant.timezone:
+        import zoneinfo
+        try:
+            today = timezone.now().astimezone(zoneinfo.ZoneInfo(tenant.timezone)).date()
+        except: pass
+    
+    # 1. CUMPLEAÑOS DE HOY
+    today_celebrants = Customer.objects.filter(
+        organization=tenant,
+        birth_month=today.month,
+        birth_day=today.day,
+        is_active=True
+    )
+    
+    # 2. PRÓXIMOS (Siguientes 30 días)
+    # Lógica simplificada: filtraremos en Python para manejar el cambio de año/mes fácilmente
+    all_customers = Customer.objects.filter(
+        organization=tenant,
+        is_active=True,
+        birth_month__isnull=False,
+        birth_day__isnull=False
+    )
+    
+    upcoming = []
+    recent = []
+    
+    for customer in all_customers:
+        # Saltar si es hoy (ya está en la otra lista)
+        if customer.birth_month == today.month and customer.birth_day == today.day:
+            continue
+            
+        # Calcular fecha del cumple en el año actual
+        try:
+            # Manejar años bisiestos (29 feb -> 28 feb si no es bisiesto)
+            bday_this_year = date(today.year, customer.birth_month, 29 if customer.birth_month == 2 and customer.birth_day == 29 and today.year % 4 != 0 else customer.birth_day)
+        except ValueError:
+            bday_this_year = date(today.year, customer.birth_month, 28)
+            
+        diff = (bday_this_year - today).days
+        
+        # Si ya pasó este año, probar el próximo para "próximos"
+        if diff < 0:
+            try:
+                bday_next_year = date(today.year + 1, customer.birth_month, customer.birth_day)
+            except ValueError:
+                bday_next_year = date(today.year + 1, customer.birth_month, 28)
+            diff_next = (bday_next_year - today).days
+            
+            # Recientes (Hace 1-7 días)
+            if diff >= -7:
+                recent.append({
+                    'customer': customer,
+                    'days_ago': abs(diff),
+                    'date': bday_this_year
+                })
+            
+            # Próximos (Si cae en los primeros días del próximo año y estamos a fin de año)
+            if 0 < diff_next <= 30:
+                upcoming.append({
+                    'customer': customer,
+                    'days_to': diff_next,
+                    'date': bday_next_year
+                })
+        else:
+            # Próximos (Este año)
+            if 0 < diff <= 30:
+                upcoming.append({
+                    'customer': customer,
+                    'days_to': diff,
+                    'date': bday_this_year
+                })
+
+    # Ordenar las listas
+    upcoming.sort(key=lambda x: x['days_to'])
+    recent.sort(key=lambda x: x['days_ago'])
+    
+    # Verificar si ya fueron felicitados (WA_SENT en los últimos días)
+    from apps.audit.models import AuditLog
+    
+    # Diccionario de IDs felicitados hoy o recientemente
+    messaged_ids = AuditLog.objects.filter(
+        organization=tenant,
+        action='WA_SENT',
+        created_at__date__gte=today - timedelta(days=7)
+    ).values_list('customer_id', flat=True)
+    
+    context = {
+        'today_celebrants': today_celebrants,
+        'upcoming': upcoming,
+        'recent': recent,
+        'messaged_ids': list(messaged_ids),
+        'title': 'Calendario de Cumpleaños'
+    }
+    
+    return render(request, 'customers/birthday_list.html', context)

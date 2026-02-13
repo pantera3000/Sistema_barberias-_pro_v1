@@ -58,34 +58,103 @@
                                 {{ form.closing_time }}
                             </div>
 
-                            <!-- Enlace QR Público -->
+                            <!-- Enlaces del Negocio -->
                             <div class="col-12 mt-5">
-                                <h5 class="fw-bold text-primary mb-3">Enlace de Solicitud QR <span class="badge bg-info ms-2" style="font-size: 0.6rem;">NUEVO</span></h5>
+                                <h5 class="fw-bold text-primary mb-3">Enlaces del Negocio <span class="badge bg-primary ms-2" style="font-size: 0.6rem;">OFICIAL</span></h5>
                                 <hr class="opacity-10 mt-0">
                             </div>
 
-                            <div class="col-md-12">
-                                <div class="p-4 bg-info bg-opacity-10 border border-info border-opacity-25 rounded-4">
-                                    <div class="row align-items-center">
-                                        <div class="col-md-8">
-                                            <h6 class="fw-bold mb-2"><i class="fas fa-qrcode text-info me-2"></i> Tu Enlace de Sellos</h6>
-                                            <p class="small text-muted mb-3">Este es el link que debes poner en tus códigos QR para que los clientes pidan sellos desde su celular.</p>
-                                            <div class="input-group">
-                                                <input type="text" id="qrPublicLink" class="form-control bg-white fw-bold text-primary" readonly 
+                            <div class="col-12">
+                                <div class="row g-4">
+                                    <!-- Registro Público / Sello QR -->
+                                    <div class="col-md-6">
+                                        <div class="p-4 bg-info bg-opacity-10 border border-info border-opacity-25 rounded-4 h-100">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-info text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-qrcode"></i>
+                                                </div>
+                                                <h6 class="fw-bold mb-0">Registro Público / Sello QR</h6>
+                                            </div>
+                                            <p class="small text-muted mb-3">Enlace para que los clientes soliciten sellos escaneando un código QR en tu local.</p>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" id="qrPublicLink" class="form-control bg-white" readonly 
                                                        value="{{ request.scheme }}://{{ request.get_host }}{% url 'stamps_public:qr_request' slug=tenant.slug %}">
-                                                <button class="btn btn-info text-white px-3" type="button" onclick="copyQRLink()">
-                                                    <i class="fas fa-copy me-1"></i> Copiar Link
+                                                <button class="btn btn-info text-white" type="button" onclick="copyAnyLink('qrPublicLink', 'feedbackQR')">
+                                                    <i class="fas fa-copy"></i>
                                                 </button>
                                             </div>
-                                            <p id="copyFeedback" class="text-success small mt-2 fw-bold" style="display: none;">
-                                                <i class="fas fa-check-circle me-1"></i> ¡Copiado al portapapeles!
+                                            <p id="feedbackQR" class="text-success small mt-2 fw-bold mb-0" style="display: none;">
+                                                <i class="fas fa-check-circle me-1"></i> ¡Copiado!
                                             </p>
                                         </div>
-                                        <div class="col-md-4 text-center d-none d-md-block">
-                                            <div class="bg-white p-3 rounded-4 shadow-sm d-inline-block">
-                                                <i class="fas fa-mobile-screen-button fa-4x text-info opacity-50"></i>
-                                                <div class="mt-2 small fw-bold text-muted">Vista Celular</div>
+                                    </div>
+
+                                    <!-- Portal del Cliente -->
+                                    <div class="col-md-6">
+                                        <div class="p-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-4 h-100">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-primary text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user-tag"></i>
+                                                </div>
+                                                <h6 class="fw-bold mb-0">Portal del Cliente (Mis Sellos)</h6>
                                             </div>
+                                            <p class="small text-muted mb-3">Donde tus clientes pueden iniciar sesión con su DNI para ver sus tarjetas acumuladas.</p>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" id="clientPortalLink" class="form-control bg-white" readonly 
+                                                       value="{{ request.scheme }}://{{ request.get_host }}{% url 'customers:customer_login' slug=tenant.slug %}">
+                                                <button class="btn btn-primary" type="button" onclick="copyAnyLink('clientPortalLink', 'feedbackClient')">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                            <p id="feedbackClient" class="text-success small mt-2 fw-bold mb-0" style="display: none;">
+                                                <i class="fas fa-check-circle me-1"></i> ¡Copiado!
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Kiosco de Consulta Rápida -->
+                                    <div class="col-md-6">
+                                        <div class="p-4 bg-success bg-opacity-10 border border-success border-opacity-25 rounded-4 h-100">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-success text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-search"></i>
+                                                </div>
+                                                <h6 class="fw-bold mb-0">Consulta Rápida / Kiosco</h6>
+                                            </div>
+                                            <p class="small text-muted mb-3">Link público para consultar sellos solo con el número de teléfono (sin login).</p>
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" id="kioskLink" class="form-control bg-white" readonly 
+                                                       value="{{ request.scheme }}://{{ request.get_host }}{% url 'stamps:public_lookup' slug=tenant.slug %}">
+                                                <button class="btn btn-success" type="button" onclick="copyAnyLink('kioskLink', 'feedbackKiosk')">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                            <p id="feedbackKiosk" class="text-success small mt-2 fw-bold mb-0" style="display: none;">
+                                                <i class="fas fa-check-circle me-1"></i> ¡Copiado!
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Acceso Staff / Trabajadores -->
+                                    <div class="col-md-6">
+                                        <div class="p-4 bg-dark bg-opacity-10 border border-dark border-opacity-25 rounded-4 h-100">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="bg-dark text-white rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user-shield"></i>
+                                                </div>
+                                                <h6 class="fw-bold mb-0">Acceso Personal / Staff</h6>
+                                            </div>
+                                            <p class="small text-muted mb-0">Enlace directo al panel de control para que tu equipo gestione clientes.</p>
+                                            <div class="input-group input-group-sm mt-3">
+                                                <input type="text" id="staffLoginLink" class="form-control bg-white" readonly 
+                                                       value="{{ request.scheme }}://{{ request.get_host }}{% url 'users:login' %}">
+                                                <button class="btn btn-dark" type="button" onclick="copyAnyLink('staffLoginLink', 'feedbackStaff')">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                            <p id="feedbackStaff" class="text-success small mt-2 fw-bold mb-0" style="display: none;">
+                                                <i class="fas fa-check-circle me-1"></i> ¡Copiado!
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -220,13 +289,13 @@
 </style>
 
 <script>
-    function copyQRLink() {
-        var copyText = document.getElementById("qrPublicLink");
+    function copyAnyLink(inputId, feedbackId) {
+        var copyText = document.getElementById(inputId);
         copyText.select();
         copyText.setSelectionRange(0, 99999);
         navigator.clipboard.writeText(copyText.value);
         
-        var feedback = document.getElementById("copyFeedback");
+        var feedback = document.getElementById(feedbackId);
         feedback.style.display = "block";
         setTimeout(function() {
             feedback.style.display = "none";

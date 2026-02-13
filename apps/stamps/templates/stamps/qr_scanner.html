@@ -71,8 +71,19 @@
         
         // Detener el escáner para evitar múltiples detecciones
         html5QrcodeScanner.clear().then(_ => {
-            // El resultado es una URL, redirigir
-            window.location.href = decodedText;
+            // El resultado es una URL, redirigir e inyectar 'next' para volver al scanner
+            let targetUrl = decodedText;
+            try {
+                // Verificar si es una URL válida de nuestra app antes de modificar
+                if (targetUrl.includes('/add-stamp/')) {
+                    const separator = targetUrl.includes('?') ? '&' : '?';
+                    // Usamos window.location.pathname para volver al scanner sin params extra
+                    targetUrl += separator + 'next=' + encodeURIComponent(window.location.pathname);
+                }
+            } catch (e) {
+                console.error("Error modificando URL", e);
+            }
+            window.location.href = targetUrl;
         }).catch(error => {
             console.warn("Failed to clear scanner", error);
             window.location.href = decodedText;

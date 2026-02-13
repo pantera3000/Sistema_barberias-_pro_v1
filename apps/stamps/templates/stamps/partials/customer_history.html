@@ -35,7 +35,7 @@
                 </td>
                 <td class="text-end">
                     {% if tx.action == 'ADD' or tx.action == 'REDEEM' %}
-                    <form action="{% url 'stamps:undo_transaction' tx.pk %}" method="post" onsubmit="return confirm('¿Deshacer esta acción?');">
+                    <form action="{% url 'stamps:undo_transaction' tx.pk %}" method="post" onsubmit="openConfirmActionModal(event, '¿Deshacer esta acción?', 'Esta operación revertirá el movimiento en la tarjeta del cliente.')">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-sm btn-outline-danger border-0" title="Deshacer">
                             <i class="fas fa-undo-alt"></i>
@@ -75,7 +75,7 @@
 
             {% if page_obj.has_next %}
                 <li class="page-item">
-                    <button class="page-link" onclick="loadHistory('{{ customer.id }}', '{{ customer.full_name }}', {{ page_obj.next_page_number }})">
+                    <button class="page-link" onclick="loadHistory('{{ customer.id }}', '{{ customer.full_name|escapejs }}', {{ page_obj.next_page_number }})">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </li>

@@ -1,0 +1,59 @@
+<div class="card h-100 border-0 shadow-sm rounded-4 hover-lift position-relative">
+    <div class="card-body p-2 px-3">
+        <!-- Badge for days left/ago -->
+        {% if type == 'upcoming' %}
+        <span class="badge bg-primary-subtle text-primary rounded-pill mb-2 border border-primary border-opacity-10 position-absolute" style="top: 10px; right: 10px; font-size: 0.65rem;">
+            Faltan {{ days_to }} d
+        </span>
+        {% elif type == 'recent' %}
+        <span class="badge bg-secondary-subtle text-secondary rounded-pill mb-2 border border-secondary border-opacity-10 position-absolute" style="top: 10px; right: 10px; font-size: 0.65rem;">
+            Hace {{ days_ago }} d
+        </span>
+        {% elif type == 'today' %}
+        <span class="badge bg-warning rounded-pill mb-2 shadow-sm pulse-animation position-absolute" style="top: 10px; right: 10px; color: #856404; font-size: 0.65rem;">
+            ¡HOY! 🎂
+        </span>
+        {% endif %}
+
+        <div class="d-flex align-items-center mb-2 mt-2">
+            <div class="avatar-initial rounded-circle bg-gradient-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                 style="width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); font-size: 1rem;">
+                {{ customer.first_name|first }}{{ customer.last_name|first }}
+            </div>
+            <div class="ms-2 overflow-hidden">
+                <h6 class="mb-0 fw-bold text-truncate" style="font-size: 0.85rem;">{{ customer.full_name }}</h6>
+                <p class="text-muted mb-0" style="font-size: 0.75rem;">
+                    <i class="fas fa-calendar-alt me-1 opacity-50"></i>
+                    {% if bday_date %}{{ bday_date|date:"d M" }}{% else %}{{ customer.birthday_display }}{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="row g-2" id="bday-actions-{{ customer.id }}">
+            <div class="col-4">
+                <a href="{% url 'customers:customer_detail' customer.id %}" class="btn btn-light btn-sm w-100 rounded-pill text-muted fw-bold" title="Ver Perfil">
+                    <i class="fas fa-user"></i>
+                </a>
+            </div>
+            <div class="col-8">
+                {% if customer.phone %}
+                    {% if customer.id in messaged_ids %}
+                    <button type="button" class="btn btn-success btn-sm w-100 rounded-pill opacity-75 d-flex align-items-center justify-content-center" disabled title="Ya se envió un mensaje recientemente">
+                        <i class="fas fa-check-circle me-1"></i> <span style="font-size: 0.7rem;">OK</span>
+                    </button>
+                    {% else %}
+                    <button type="button" 
+                            onclick="openGlobalWaModal('{{ customer.phone|cut:' ' }}', '{{ customer.first_name|escapejs }}', { templateName: 'Cumpleaños', customerId: '{{ customer.id }}' })"
+                            class="btn btn-success btn-sm w-100 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center">
+                        <i class="fab fa-whatsapp me-1" style="font-size: 0.9rem;"></i> <span style="font-size: 0.75rem;">Felicitar</span>
+                    </button>
+                    {% endif %}
+                {% else %}
+                    <button class="btn btn-outline-secondary btn-sm w-100 rounded-pill opacity-50" disabled>
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

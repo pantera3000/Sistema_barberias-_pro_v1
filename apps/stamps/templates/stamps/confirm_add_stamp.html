@@ -31,10 +31,12 @@
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="promotion_id" value="{{ active_promo.id }}">
+                    {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+                    
                     <button type="submit" class="btn btn-lg w-100 rounded-pill py-3 shadow-sm mb-3 text-white fw-bold" style="background-color: {{ active_promo.primary_color }}">
                         <i class="fas fa-plus-circle me-2"></i> PONER SELLO AHORA
                     </button>
-                    <a href="{% url 'stamps:card_list' %}" class="btn btn-link text-muted">Cancelar</a>
+                    <a href="{{ next_url|default:request.META.HTTP_REFERER|default:'#' }}" class="btn btn-link text-muted">Cancelar</a>
                 </form>
             </div>
         </div>

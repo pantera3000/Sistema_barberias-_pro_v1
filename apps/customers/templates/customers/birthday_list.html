@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'core:dashboard' %}" class="text-decoration-none">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'customers:customer_list' %}" class="text-decoration-none">Clientes</a></li>
+                    <li class="breadcrumb-item active">Cumpleaños</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">🎂 Calendario de Cumpleaños</h2>
+            <p class="text-muted small mb-0">Gestiona y celebra los días especiales de tus clientes.</p>
+        </div>
+    </div>
+
+    <!-- Desktop/Tablet 3-Column Layout -->
+    <div class="row g-3">
+        <!-- Columna 1: Hoy -->
+        <div class="col-lg-4 mb-4">
+            <div class="column-header d-flex align-items-center justify-content-between mb-3 px-2">
+                <h5 class="fw-bold mb-0 d-flex align-items-center">
+                    <span class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                        <i class="fas fa-calendar-day"></i>
+                    </span>
+                    Hoy
+                </h5>
+                {% if today_celebrants %}
+                <span class="badge rounded-pill bg-danger shadow-sm pulse-animation">
+                    {{ today_celebrants.count }}
+                </span>
+                {% else %}
+                <span class="badge rounded-pill bg-light text-muted border">0</span>
+                {% endif %}
+            </div>
+            
+            <div class="column-body">
+                {% if today_celebrants %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for customer in today_celebrants %}
+                            {% include 'customers/partials/birthday_card.html' with type='today' %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 bg-light rounded-4 border border-dashed">
+                        <p class="text-muted small mb-0">No hay cumpleaños hoy</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Columna 2: Próximos -->
+        <div class="col-lg-4 mb-4">
+            <div class="column-header d-flex align-items-center justify-content-between mb-3 px-2">
+                <h5 class="fw-bold mb-0 d-flex align-items-center">
+                    <span class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </span>
+                    Próximos (30 d)
+                </h5>
+                <span class="badge rounded-pill bg-light text-muted border">{{ upcoming|length }}</span>
+            </div>
+            
+            <div class="column-body">
+                {% if upcoming %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for item in upcoming %}
+                            {% include 'customers/partials/birthday_card.html' with customer=item.customer days_to=item.days_to type='upcoming' bday_date=item.date %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 bg-light rounded-4 border border-dashed">
+                        <p class="text-muted small mb-0">Nada próximamente</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Columna 3: Olvidé Felicitar -->
+        <div class="col-lg-4 mb-4">
+            <div class="column-header d-flex align-items-center justify-content-between mb-3 px-2">
+                <h5 class="fw-bold mb-0 d-flex align-items-center">
+                    <span class="bg-secondary bg-opacity-10 text-secondary rounded-circle p-2 me-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                        <i class="fas fa-clock-rotate-left"></i>
+                    </span>
+                    Recientes
+                </h5>
+                <span class="badge rounded-pill bg-light text-muted border">{{ recent|length }}</span>
+            </div>
+            
+            <div class="column-body">
+                {% if recent %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for item in recent %}
+                            {% include 'customers/partials/birthday_card.html' with customer=item.customer days_ago=item.days_ago type='recent' bday_date=item.date %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 bg-light rounded-4 border border-dashed">
+                        <p class="text-muted small mb-0">¡Todo al día!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('whatsapp-sent', function(e) {
+        const customerId = e.detail.customerId;
+        const container = document.getElementById(`bday-actions-${customerId}`);
+        if (container) {
+            // Encontrar la columna del botón (la segunda col-8)
+            const actionCol = container.querySelector('.col-8');
+            if (actionCol) {
+                // Reemplazar por el botón "OK"
+                actionCol.innerHTML = `
+                    <button type="button" class="btn btn-success btn-sm w-100 rounded-pill opacity-75 d-flex align-items-center justify-content-center" disabled title="Ya se envió un mensaje recientemente">
+                        <i class="fas fa-check-circle me-1"></i> <span style="font-size: 0.7rem;">OK</span>
+                    </button>
+                `;
+            }
+        }
+    });
+</script>
+
+<style>
+    .border-dashed {
+        border-style: dashed !important;
+        border-width: 2px !important;
+    }
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.05) !important;
+    }
+    @keyframes pulse-red {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+        70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(220, 53, 69, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    .pulse-animation {
+        animation: pulse-red 2s infinite;
+    }
+</style>
+{% endblock %}

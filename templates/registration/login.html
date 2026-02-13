@@ -1,5 +1,7 @@
 
 {% extends 'base.html' %}
+{% block hide_nav %}{% endblock %}
+{% block hide_sidebar %}{% endblock %}
 
 {% block title %}Iniciar Sesión - Barber SaaS{% endblock %}
 
@@ -71,9 +73,9 @@
 
                 <div class="mt-4 pt-3 border-top text-center">
                     <p class="mb-2 text-dark fw-bold small">¿Eres cliente de una barbería?</p>
-                    <a href="{% if request.tenant %}{% url 'customers:customer_login' slug=request.tenant.slug %}{% else %}#{% endif %}" 
+                    <a href="{% if request.tenant.slug %}{% url 'customers:customer_login' slug=request.tenant.slug %}{% else %}#{% endif %}" 
                        class="btn btn-outline-primary w-100 rounded-pill py-2 fw-bold"
-                       {% if not request.tenant %}data-bs-toggle="modal" data-bs-target="#customerInfoModal"{% endif %}>
+                       {% if not request.tenant.slug %}data-bs-toggle="modal" data-bs-target="#customerInfoModal"{% endif %}>
                         <i class="fas fa-star me-2"></i> CONSULTAR MIS SELLOS
                     </a>
                 </div>

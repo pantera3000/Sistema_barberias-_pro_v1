@@ -2,23 +2,23 @@
     {% for group in grouped_customers %}
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card shadow-sm h-100 border-0 overflow-hidden">
-            <!-- Cabecera del Cliente -->
-            <div class="card-header border-0 bg-white pt-4 px-4 pb-0">
-                <div class="d-flex justify-content-between align-items-start">
+            <!-- Cabecera del Cliente Compacta -->
+            <div class="card-header border-0 bg-white pt-3 pt-md-4 px-3 px-md-4 pb-0">
+                <div class="d-flex justify-content-between align-items-center">
                     <div class="overflow-hidden">
                         <div class="d-flex align-items-center">
                             <a href="{% url 'customers:customer_detail' group.customer.id %}" class="text-decoration-none">
-                                <h5 class="fw-bold mb-0 text-dark text-truncate me-2 hover-opacity" title="Ver perfil completo">{{ group.customer.full_name }}</h5>
+                                <h5 class="fw-bold mb-0 text-dark text-truncate me-1">{{ group.customer.full_name }}</h5>
                             </a>
-                            <button type="button" class="btn btn-link p-0 text-muted" onclick="loadHistory('{{ group.customer.id }}', '{{ group.customer.full_name }}')" title="Ver historial">
+                            <button type="button" class="btn btn-link p-0 text-muted" onclick="loadHistory('{{ group.customer.id }}', '{{ group.customer.full_name }}')">
                                 <i class="fas fa-history small"></i>
                             </button>
                         </div>
-                        <small class="text-muted">{{ group.customer.phone|default:"Sin teléfono" }}</small>
+                        <small class="text-muted">{{ group.customer.phone|default:"Sin tel" }}</small>
                     </div>
                     {% if group.requested_count > 0 %}
-                    <span class="badge bg-warning text-dark border shadow-sm animate-pulse flex-shrink-0 ms-2">
-                        <i class="fas fa-bell me-1"></i> SOLICITADO
+                    <span class="badge bg-warning text-dark border-0 shadow-none animate-pulse px-2 py-1">
+                         SOLICITADO
                     </span>
                     {% endif %}
                 </div>
@@ -26,31 +26,25 @@
 
             <!-- Cuerpo - Tarjeta Activa y Resumen -->
             <div class="card-body px-4">
-                <!-- Premios Listos -->
+                <!-- Premios Listos Compact -->
                 {% if group.completed_cards %}
-                <div class="mb-4">
-                    <label class="small fw-bold text-success text-uppercase mb-2" style="font-size: 0.7rem;">
-                        <i class="fas fa-gift me-1"></i> Premios por entregar ({{ group.completed_cards|length }})
+                <div class="mb-2 mb-md-3">
+                    <label class="small fw-bold text-success text-uppercase mb-1">
+                        <i class="fas fa-gift me-1"></i> Premios ({{ group.completed_cards|length }})
                     </label>
                     {% for card in group.completed_cards %}
-                    <div class="alert d-flex justify-content-between align-items-center py-2 px-3 mb-2 border-0 shadow-sm" 
-                         style="background-color: {{ card.promotion.primary_color }}15; color: #0a3622; border-left: 4px solid {{ card.promotion.primary_color }} !important;">
+                    <div class="alert d-flex justify-content-between align-items-center py-1 px-2 mb-1 border-0 shadow-none" 
+                         style="background-color: {{ card.promotion.primary_color }}15; color: #0a3622; border-left: 3px solid {{ card.promotion.primary_color }} !important; border-radius: 6px;">
                         <div class="small overflow-hidden me-2">
-                            <span class="fw-bold d-block text-truncate" style="font-size: 0.8rem;">
-                                {{ card.promotion.name }} <span class="text-muted font-monospace" style="font-size: 0.7rem;">#{{ card.pk }}</span>
-                                {% if card.redemption_requested %}
-                                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem; vertical-align: middle;">SOLICITADO</span>
-                                {% endif %}
+                            <span class="fw-bold d-block text-truncate">
+                                {{ card.promotion.name }}
                             </span>
-                            <small class="text-muted d-block text-truncate" style="font-size: 0.7rem;">
-                                {{ card.promotion.reward.name|default:card.promotion.reward_description }}
-                            </small>
                         </div>
-                        <form action="{% url 'stamps:redeem_card' card.pk %}" method="post" class="d-inline flex-shrink-0">
+                        <form action="{% url 'stamps:redeem_card' card.pk %}" method="post" class="d-inline">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm text-white fw-bold shadow-sm" 
-                                    onclick="return confirm('¿Confirmar entrega de: {{ card.promotion.name }} (#{{ card.pk }})?');"
-                                    style="background-color: {{ card.promotion.primary_color }}; border: none; font-size: 0.7rem; padding: 4px 8px;">
+                            <button type="submit" class="btn btn-sm text-white fw-bold py-1 px-2" 
+                                    onclick="openConfirmRedeemModal(event, '{{ group.customer.full_name|escapejs }}', '{{ card.promotion.name|escapejs }}')"
+                                    style="background-color: {{ card.promotion.primary_color }}; border: none;">
                                 CANJEAR
                             </button>
                         </form>
@@ -62,15 +56,14 @@
                 <!-- Tarjetas en Progreso -->
                 {% if group.active_cards %}
                     {% for card in group.active_cards %}
-                    <div class="text-center mb-4 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="fw-bold text-uppercase text-muted" style="font-size: 0.7rem;">
-                                {{ card.promotion.name }} <span class="font-monospace opacity-50">#{{ card.pk }}</span>
+                    <div class="text-center mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="fw-bold text-uppercase text-muted">
+                                {{ card.promotion.name }}
                             </small>
-                            <span class="badge rounded-pill" style="background-color: {{ card.promotion.primary_color }}; width: 10px; height: 10px; padding: 0;"> </span>
                         </div>
                         
-                        <div class="stamp-grid mb-3">
+                        <div class="stamp-grid mb-2">
                             {% with ""|center:card.promotion.total_stamps_needed as range %}
                             {% for _ in range %}
                                 <div class="stamp-slot {% if forloop.counter <= card.current_stamps %}active{% elif card.pending_count and forloop.counter > card.current_stamps and forloop.counter <= card.current_stamps|add:card.pending_count %}animate-pulse-orange{% endif %}" 
@@ -78,7 +71,7 @@
                                     {% if forloop.counter <= card.current_stamps %}
                                         <i class="fas fa-stamp"></i>
                                     {% elif card.pending_count and forloop.counter > card.current_stamps and forloop.counter <= card.current_stamps|add:card.pending_count %}
-                                        <i class="fas fa-qrcode text-warning" style="font-size: 0.7rem;"></i>
+                                        <i class="fas fa-qrcode text-warning"></i>
                                     {% else %}
                                         <span class="slot-number">{{ forloop.counter }}</span>
                                     {% endif %}
@@ -87,55 +80,44 @@
                             {% endwith %}
                         </div>
                         
-                        <div class="progress mb-2" style="height: 6px; border-radius: 10px;">
-                            <div class="progress-bar" role="progressbar" style="width: {% widthratio card.current_stamps card.promotion.total_stamps_needed 100 %}%; background-color: {{ card.promotion.primary_color }}"></div>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between small text-muted mb-3" style="font-size: 0.75rem;">
+                        <div class="d-flex justify-content-between small text-muted mb-2">
                             <span>{{ card.current_stamps }}/{{ card.promotion.total_stamps_needed }} sellos</span>
                             <span class="fw-bold text-dark">Faltan {{ card.promotion.total_stamps_needed|add:"-"|add:card.current_stamps }}</span>
                         </div>
 
-                        <!-- Aviso de pendientes -->
+                        <!-- Aviso QR pendiente compact -->
                         {% if card.pending_count %}
-                        <div class="alert alert-warning py-2 px-3 small mb-2 text-center shadow-sm" style="font-size: 0.7rem; border-radius: 12px; border: 1px dashed #f59e0b; background-color: #fffbeb;">
-                            <div class="mb-2">
-                                <i class="fas fa-exclamation-triangle me-1"></i> Tiene <strong>{{ card.pending_count }} sello{{ card.pending_count|pluralize }}</strong> por QR pendiente
-                            </div>
-                            <button type="button" class="btn btn-warning btn-sm w-100 fw-bold shadow-sm" 
+                        <div class="alert alert-warning py-1 px-2 small mb-2 text-center border-dashed" style="border-radius: 8px; background-color: #fffbeb;">
+                            <p class="mb-1"><i class="fas fa-qrcode me-1"></i> QR Pendiente ({{ card.pending_count }})</p>
+                            <button type="button" class="btn btn-warning btn-sm w-100 fw-bold py-1" 
                                     onclick="approvePendingQR('{{ card.first_pending_request_id }}', this)"
-                                    style="font-size: 0.65rem; padding: 4px 8px; background-color: #f59e0b; border: none; color: #fff;">
-                                <i class="fas fa-check-circle me-1"></i> APROBAR QR AHORA
+                                    style="border: none;">
+                                APROBAR AHORA
                             </button>
                         </div>
                         {% endif %}
 
-                        <!-- Botón de Sello Rápido para ESTA tarjeta -->
+                        <!-- Botón de Sello Rápido -->
                         {% with is_boss=user.is_owner|default:user.is_superuser %}
-                        <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post" onsubmit="return confirm('¿Añadir 1 sello a {{ group.customer.full_name }} en {{ card.promotion.name }} (#{{ card.pk }})?');">
+                        <form action="{% url 'stamps:add_stamp_customer' group.customer.id %}" method="post" onsubmit="openConfirmStampModal(event, '{{ group.customer.full_name|escapejs }}', '{{ card.promotion.name|escapejs }}')">
                             {% csrf_token %}
                             <input type="hidden" name="promotion_id" value="{{ card.promotion.id }}">
-                            <button type="submit" class="btn btn-sm w-100 py-2 btn-outline-primary fw-bold" 
-                                    {% if card.pending_count and not is_boss %}disabled title="Aprobar el QR primero"{% endif %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button type="submit" class="btn btn-sm w-100 py-1 btn-outline-primary fw-bold" 
+                                    {% if card.pending_count and not is_boss %}disabled{% endif %}
                                     style="border-color: {{ card.promotion.primary_color }}; color: {{ card.promotion.primary_color }};">
-                                <i class="fas fa-plus me-1"></i> MARCAR {{ card.promotion.name|upper }}
+                                <i class="fas fa-plus me-1"></i> MARCAR SELLO
                             </button>
-                            {% if card.pending_count and not is_boss %}
-                            <small class="text-danger d-block mt-1" style="font-size: 0.6rem;">* Bloqueado: Tramita el QR primero</small>
-                            {% endif %}
                         </form>
                         {% endwith %}
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-4 bg-light rounded-3 mb-3 border border-dashed">
-                        <i class="fas fa-plus-circle text-muted opacity-50 mb-2 fa-lg"></i>
+                    <div class="text-center py-2 bg-light rounded-3 mb-2 border border-dashed">
                         <p class="text-muted small mb-0">Sin tarjeta activa</p>
                     </div>
-
-                    <!-- Botón para crear tarjeta si no tiene ninguna -->
-                    <button type="button" class="btn btn-primary w-100 py-2 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#newCardModal" onclick="selectCustomer({id: '{{ group.customer.id }}', full_name: '{{ group.customer.full_name }}', phone: '{{ group.customer.phone }}'})">
-                        <i class="fas fa-plus me-2"></i> INICIAR TARJETA
+                    <button type="button" class="btn btn-primary btn-sm w-100 py-1 fw-bold" data-bs-toggle="modal" data-bs-target="#newCardModal" onclick="selectCustomer({id: '{{ group.customer.id }}', full_name: '{{ group.customer.full_name }}', phone: '{{ group.customer.phone }}'})">
+                        <i class="fas fa-plus me-1"></i> INICIAR
                     </button>
                 {% endif %}
             </div>

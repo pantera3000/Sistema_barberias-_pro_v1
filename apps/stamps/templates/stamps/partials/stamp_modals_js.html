@@ -1,0 +1,94 @@
+<script>
+    // --- Lógica de Modales de Confirmación Unificados ---
+    let confirmModal, redeemModal, actionModal;
+    let pendingForm = null;
+    let pendingAction = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmModalEl = document.getElementById('confirmStampModal');
+        const redeemModalEl = document.getElementById('confirmRedeemModal');
+        const actionModalEl = document.getElementById('confirmActionModal');
+        
+        if (confirmModalEl) confirmModal = new bootstrap.Modal(confirmModalEl);
+        if (redeemModalEl) redeemModal = new bootstrap.Modal(redeemModalEl);
+        if (actionModalEl) actionModal = new bootstrap.Modal(actionModalEl);
+
+        // --- Manejo unificado de botones de confirmación ---
+        const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
+        const confirmRedeemBtn = document.getElementById('confirmRedeemBtn');
+        const confirmGenericBtn = document.getElementById('confirmGenericBtn');
+
+        if (confirmSubmitBtn) {
+            confirmSubmitBtn.onclick = function() {
+                executePendingAction(this, 'PROCESANDO...');
+            };
+        }
+
+        if (confirmRedeemBtn) {
+            confirmRedeemBtn.onclick = function() {
+                executePendingAction(this, 'CANJEANDO...');
+            };
+        }
+
+        if (confirmGenericBtn) {
+            confirmGenericBtn.onclick = function() {
+                executePendingAction(this, 'EJECUTANDO...');
+            };
+        }
+    });
+
+    function executePendingAction(btn, loadingText) {
+        if (pendingForm) {
+            btn.classList.add('disabled');
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> ${loadingText}`;
+            pendingForm.submit();
+        } else if (pendingAction) {
+            btn.classList.add('disabled');
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> ${loadingText}`;
+            pendingAction();
+        }
+    }
+
+    function setPending(event, actionOrForm) {
+        pendingForm = null;
+        pendingAction = null;
+
+        if (actionOrForm) {
+            if (typeof actionOrForm === 'function') {
+                pendingAction = actionOrForm;
+            } else if (actionOrForm instanceof HTMLFormElement) {
+                pendingForm = actionOrForm;
+            }
+        } else if (event && event.target) {
+            // Si el trigger está dentro de un form, lo capturamos
+            pendingForm = event.target.closest('form');
+        }
+    }
+
+    window.openConfirmStampModal = function(event, customerName, promoName, actionOrForm) {
+        if (event) event.preventDefault();
+        setPending(event, actionOrForm);
+        
+        document.getElementById('modalCustomerName').innerText = customerName;
+        document.getElementById('modalPromoName').innerText = promoName;
+        if (confirmModal) confirmModal.show();
+    };
+
+    window.openConfirmRedeemModal = function(event, customerName, promoName, actionOrForm) {
+        if (event) event.preventDefault();
+        setPending(event, actionOrForm);
+        
+        document.getElementById('modalRedeemCustomer').innerText = customerName;
+        document.getElementById('modalRedeemPromo').innerText = promoName;
+        if (redeemModal) redeemModal.show();
+    };
+
+    window.openConfirmActionModal = function(event, title, body, actionOrForm) {
+        if (event) event.preventDefault();
+        setPending(event, actionOrForm);
+
+        if (title) document.getElementById('modalActionTitle').innerText = title;
+        if (body) document.getElementById('modalActionBody').innerText = body;
+        if (actionModal) actionModal.show();
+    };
+</script>
