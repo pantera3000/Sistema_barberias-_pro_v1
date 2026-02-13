@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='notificationconfig',
             name='birthday_template',
-            field=models.TextField(default='¡Feliz cumpleaños {nombre}! 🎉🎂 De parte de todo el equipo de {negocio} te deseamos lo mejor. ¡Ven hoy y recibe un descuento especial! 🎁', verbose_name='Plantilla: Cumpleaños'),
+            field=models.TextField(blank=True, verbose_name='Plantilla: Cumpleaños'),
         ),
     ]

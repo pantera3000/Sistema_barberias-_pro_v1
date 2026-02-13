@@ -19,9 +19,9 @@ class Migration(migrations.Migration):
                 ('whatsapp_api_url', models.URLField(blank=True, help_text='Ej: https://api.ultramsg.com/instance123/messages/chat', max_length=500, verbose_name='WhatsApp API URL')),
                 ('whatsapp_token', models.CharField(blank=True, max_length=255, verbose_name='WhatsApp Token')),
                 ('email_enabled', models.BooleanField(default=False, verbose_name='Habilitar Emails')),
-                ('template_one_left', models.TextField(default='Hola {nombre}, ¡ya casi lo tienes! 🚀 Solo te falta 1 sello para completar tu tarjeta en {negocio}. ¡Te esperamos pronto!', verbose_name='Plantilla: Falta 1 sello')),
-                ('template_completed', models.TextField(default='¡Felicidades {nombre}! ✨ Has completado tu tarjeta en {negocio}. Tienes un {premio} esperándote. ¡Ven por él!', verbose_name='Plantilla: Tarjeta Completada')),
-                ('template_expiring', models.TextField(default='Hola {nombre}, tu tarjeta de sellos en {negocio} vencerá en 7 días. 🔥 ¡No pierdas tus avances y visítanos pronto!', verbose_name='Plantilla: Por Vencer (7 días)')),
+                ('template_one_left', models.TextField(blank=True, verbose_name='Plantilla: Falta 1 sello')),
+                ('template_completed', models.TextField(blank=True, verbose_name='Plantilla: Tarjeta Completada')),
+                ('template_expiring', models.TextField(blank=True, verbose_name='Plantilla: Por Vencer (7 días)')),
                 ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='core.organization', verbose_name='Organización')),
             ],
             options={

@@ -88,22 +88,22 @@ class NotificationConfig(TenantAwareModel):
     
     # Templates (Engagement)
     template_one_left = models.TextField(
-        default="¡Hola {nombre}! 👋 ¡Ya casi lo tienes! 🚀\n\nSolo te falta *1 sello* para completar tu tarjeta en {negocio}. ✨\n\n¡Te esperamos pronto para tu próximo servicio! 💈✂️",
+        blank=True,
         verbose_name="Plantilla: Falta 1 sello"
     )
     template_completed = models.TextField(
-        default="¡Felicidades, {nombre}! 🎊✨\n\nHas completado tu tarjeta en {negocio}. 🏆 Tienes un *{premio}* esperándote. 🎁\n\n¡Ven por él hoy mismo y luce impecable! 💈👑",
+        blank=True,
         verbose_name="Plantilla: Tarjeta Completada"
     )
     template_expiring = models.TextField(
-        default="¡Hola {nombre}! 👋 Tu tarjeta de sellos en {negocio} tiene novedades. 🔥\n\nRecuerda que tus sellos vencerán en *7 días*. ⏳ ¡No pierdas tus avances y visítanos pronto! 💈✂️",
+        blank=True,
         verbose_name="Plantilla: Por Vencer (7 días)"
     )
     
     # Birthday Automation
     birthday_enabled = models.BooleanField(default=False, verbose_name="Habilitar Saludos de Cumpleaños")
     birthday_template = models.TextField(
-        default="¡Feliz cumpleaños, {nombre}! 🎂🥳\n\nDe parte de todo el equipo de {negocio}, te deseamos un día espectacular. ✨\n\nComo regalo especial por tu día, hoy tienes un *descuento exclusivo* esperándote. 🎁\n\n¡Ven a celebrar con nosotros y luce impecable en tu día! ✂️💈",
+        blank=True,
         verbose_name="Plantilla: Cumpleaños"
     )
 
